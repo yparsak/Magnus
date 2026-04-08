@@ -23,7 +23,7 @@ async function runEvaluation() {
         const game = games[0];
 
         const [moves] = await connection.execute(
-            'SELECT id, short_notation FROM game_moves WHERE game_id = ? ORDER BY id ASC',
+            'SELECT id, fen, short_notation FROM game_moves WHERE game_id = ? ORDER BY id ASC',
             [game.id]
         );
 
@@ -53,9 +53,9 @@ async function runEvaluation() {
 
             await sendCommand(stockfish, `position startpos moves ${movesString}`, null); // No wait needed here
             await sendCommand(stockfish, 'isready', 'readyok'); // Ensure board is set
-            
-            const rawEval = await sendCommand(stockfish, 'eval', 'Final evaluation');
-            const evaluation = parseEval(rawEval);
+
+            const searchOutput = await sendCommand(stockfish, 'go depth 20', 'bestmove');
+            const evaluation = parseSearchEval(searchOutput); 
 
             console.log(`Game ${game.id} | ${moveData.short_notation} | Eval: ${evaluation.finalEval}`);
 
@@ -80,32 +80,32 @@ async function runEvaluation() {
 /**
  * Improved Command Sender
  */
-function sendCommand(child, command, terminator) {
+/**
+ * Improved Command Sender with Dynamic Timeout
+ * Ms 60000 = 60sec
+ */
+function sendCommand(child, command, terminator, timeoutMs = 60000 ) {
     return new Promise((resolve, reject) => {
         let buffer = '';
         
         const onData = (data) => {
-            const chunk = data.toString();
-            buffer += chunk;
-            
-            // If no terminator is provided (e.g. for 'position' command), resolve immediately
+            buffer += data.toString();
             if (!terminator || buffer.includes(terminator)) {
                 child.stdout.removeListener('data', onData);
+                clearTimeout(timeout); // Clear on success
                 resolve(buffer);
             }
         };
 
         child.stdout.on('data', onData);
         
-        // Timeout if engine takes too long to respond to a command
         const timeout = setTimeout(() => {
             child.stdout.removeListener('data', onData);
-            reject(new Error(`Stockfish timeout on command: ${command}`));
-        }, 5000);
+            reject(new Error(`Stockfish timeout on command: ${command} after ${timeoutMs}ms`));
+        }, timeoutMs);
 
         child.stdin.write(`${command}\n`);
         
-        // Clear timeout if resolved
         if (!terminator) {
             clearTimeout(timeout);
             resolve();
@@ -113,16 +113,32 @@ function sendCommand(child, command, terminator) {
     });
 }
 
-function parseEval(text) {
-    const getVal = (regex) => {
-        const match = text.match(regex);
-        return match ? parseFloat(match[1]) : 0;
-    };
+function parseSearchEval(text) {
+    // Search for the last 'info' line containing 'score cp'
+    const lines = text.split('\n');
+    let cpValue = 0;
+
+    for (let i = lines.length - 1; i >= 0; i--) {
+        if (lines[i].includes('score cp')) {
+            const match = lines[i].match(/score cp ([-+]?\d+)/);
+            if (match) {
+                // Convert centipawns to decimal (e.g., 556 to 5.56)
+                cpValue = parseInt(match[1]) / 100;
+                break;
+            }
+        }
+        // Handle Mates
+        if (lines[i].includes('score mate')) {
+            const match = lines[i].match(/score mate ([-+]?\d+)/);
+            cpValue = match[1] > 0 ? 99.0 : -99.0; // Represent mate as a high score
+            break;
+        }
+    }
 
     return {
-        matEval: getVal(/NNUE Material Eval:\s+([-+]?\d+\.\d+)/),
-        posEval: getVal(/NNUE Positional:\s+([-+]?\d+\.\d+)/),
-        finalEval: getVal(/Final\s+evaluation\s+([-+]?\d+\.\d+)/)
+        matEval: 0, // Search score doesn't provide these separately
+        posEval: 0,
+        finalEval: cpValue
     };
 }
 
