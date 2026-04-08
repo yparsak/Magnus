@@ -5,4 +5,5 @@ all:
 	npm install chess.js
 	npm install mysql2
 	npm install axios
+	npm install promise
 

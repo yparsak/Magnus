@@ -49,7 +49,7 @@ CREATE TABLE `players` (
   KEY `fk_platform` (`platform_id`),
   CONSTRAINT `fk_platform` FOREIGN KEY (`platform_id`) REFERENCES `platforms` (`id`),
   CONSTRAINT `fk_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -73,12 +73,13 @@ CREATE TABLE `player_games` (
   `black_elo` smallint(6) DEFAULT NULL,
   `termination` varchar(255) DEFAULT NULL,
   `time_control` varchar(50) DEFAULT NULL,
+  `analyzed` tinyint(1) DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `fk_player` (`player_id`),
   KEY `fk_platform` (`platform_id`),
   CONSTRAINT `fk_player_games_platform` FOREIGN KEY (`platform_id`) REFERENCES `platforms` (`id`),
   CONSTRAINT `fk_player_games_player` FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=74 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=89 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -95,6 +96,9 @@ CREATE TABLE `game_moves` (
   `short_notation` varchar(10) NOT NULL,
   `long_notation` varchar(15) NOT NULL,
   `side` tinyint(1) NOT NULL DEFAULT 1,
+  `NNUMatEval` decimal(10,2) DEFAULT 0.00,
+  `NNUMPosEval` decimal(10,2) DEFAULT 0.00,
+  `Eval` decimal(10,2) DEFAULT 0.00,
   PRIMARY KEY (`id`),
   KEY `fk_game` (`game_id`),
   CONSTRAINT `fk_game` FOREIGN KEY (`game_id`) REFERENCES `player_games` (`id`)
@@ -110,4 +114,4 @@ CREATE TABLE `game_moves` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-04-07 11:14:28
+-- Dump completed on 2026-04-08 11:14:01
