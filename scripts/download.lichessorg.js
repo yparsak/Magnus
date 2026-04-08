@@ -3,7 +3,10 @@
   Optimized with Transactions, Batch Inserts, and FEN Generation
 */
 
-require('dotenv').config();
+require('dotenv').config({
+  path: require('path').resolve(__dirname, '.env')
+});
+
 const { Chess } = require('chess.js');
 const mysql = require('mysql2/promise');
 const axios = require('axios');
