@@ -28,7 +28,7 @@ CREATE TABLE `users` (
   `name` varchar(20) NOT NULL,
   `lastname` varchar(20) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -49,7 +49,7 @@ CREATE TABLE `players` (
   KEY `fk_platform` (`platform_id`),
   CONSTRAINT `fk_platform` FOREIGN KEY (`platform_id`) REFERENCES `platforms` (`id`),
   CONSTRAINT `fk_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -73,12 +73,15 @@ CREATE TABLE `player_games` (
   `black_elo` smallint(6) DEFAULT NULL,
   `termination` varchar(255) DEFAULT NULL,
   `time_control` varchar(50) DEFAULT NULL,
+  `book_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_player` (`player_id`),
   KEY `fk_platform` (`platform_id`),
+  KEY `fk_book` (`book_id`),
+  CONSTRAINT `fk_player_games_book` FOREIGN KEY (`book_id`) REFERENCES `opening_book` (`id`),
   CONSTRAINT `fk_player_games_platform` FOREIGN KEY (`platform_id`) REFERENCES `platforms` (`id`),
   CONSTRAINT `fk_player_games_player` FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=89 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -95,10 +98,30 @@ CREATE TABLE `game_moves` (
   `short_notation` varchar(10) NOT NULL,
   `long_notation` varchar(15) NOT NULL,
   `side` tinyint(1) NOT NULL DEFAULT 1,
+  `eval_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_game` (`game_id`),
-  CONSTRAINT `fk_game` FOREIGN KEY (`game_id`) REFERENCES `player_games` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5370 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+  KEY `fk_eval` (`eval_id`),
+  CONSTRAINT `fk_game` FOREIGN KEY (`game_id`) REFERENCES `player_games` (`id`),
+  CONSTRAINT `fk_game_moves_eval` FOREIGN KEY (`eval_id`) REFERENCES `evaluation` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `evaluation`
+--
+
+DROP TABLE IF EXISTS `evaluation`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `evaluation` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `fen` varchar(255) NOT NULL,
+  `NNUMatEval` decimal(10,2) DEFAULT 0.00,
+  `NNUMPosEval` decimal(10,2) DEFAULT 0.00,
+  `Eval` decimal(10,2) DEFAULT 0.00,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -110,4 +133,4 @@ CREATE TABLE `game_moves` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-04-08 21:08:46
+-- Dump completed on 2026-04-09  8:23:39
