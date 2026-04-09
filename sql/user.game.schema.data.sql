@@ -73,7 +73,6 @@ CREATE TABLE `player_games` (
   `black_elo` smallint(6) DEFAULT NULL,
   `termination` varchar(255) DEFAULT NULL,
   `time_control` varchar(50) DEFAULT NULL,
-  `analyzed` tinyint(1) DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `fk_player` (`player_id`),
   KEY `fk_platform` (`platform_id`),
@@ -96,9 +95,6 @@ CREATE TABLE `game_moves` (
   `short_notation` varchar(10) NOT NULL,
   `long_notation` varchar(15) NOT NULL,
   `side` tinyint(1) NOT NULL DEFAULT 1,
-  `NNUMatEval` decimal(10,2) DEFAULT 0.00,
-  `NNUMPosEval` decimal(10,2) DEFAULT 0.00,
-  `Eval` decimal(10,2) DEFAULT 0.00,
   PRIMARY KEY (`id`),
   KEY `fk_game` (`game_id`),
   CONSTRAINT `fk_game` FOREIGN KEY (`game_id`) REFERENCES `player_games` (`id`)
@@ -114,4 +110,4 @@ CREATE TABLE `game_moves` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-04-08 11:14:01
+-- Dump completed on 2026-04-08 21:08:46
