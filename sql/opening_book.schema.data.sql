@@ -31,7 +31,7 @@ CREATE TABLE `opening_book` (
   `pgn` text DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_fen` (`fen`)
-) ENGINE=InnoDB AUTO_INCREMENT=3665 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+) ENGINE=InnoDB 665 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
