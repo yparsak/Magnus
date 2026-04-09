@@ -200,19 +200,16 @@
 
   echo "USER_NAME=$USER_NAME"                                >> "$ENV_FILE"
   echo "USER_LASTNAME=$USER_LASTNAME"                        >> "$ENV_FILE"
-  echo "USER_FULLNAME=$USER_NAME $USER_LASTNAME"             >> "$ENV_FILE"
   echo "USER_EMAIL=$USER_EMAIL"                              >> "$ENV_FILE"
  
   echo "LI_USER_API=https://lichess.org/api/games/user"      >> "$ENV_FILE"
   echo "CHESSCOM_USER_API=https://api.chess.com/pub/player"  >> "$ENV_FILE"
-  echo "USER_AGENT=${APP_NAME} contact:$USER_EMAIL"     >> "$ENV_FILE" 
-
+  echo "USER_AGENT=${APP_NAME}_contact:$USER_EMAIL"           >> "$ENV_FILE" 
   echo "SRC_PATH=$SRC_PATH"                                  >> "$ENV_FILE"
+  echo "ENGINE_PATH=${ENGINE_PATH}"                          >> "$ENV_FILE"
+
   chmod 600 "$ENV_FILE"
   chown "$SUDO_USER:$SUDO_USER" "$ENV_FILE"
-
-  echo $ENV_FILE
-  exit
 
   # -- Create Database
   if [ -n $SUDO_USER ]; then
@@ -236,4 +233,80 @@
   fi 
 
   cd $APP_PATH/scripts && make
+
+  # -- Install Stockfish
+  echo "Checking $ENGINE_NAME latest version"
+  LATEST_TAG=$(curl -s $ENGINE_API_URL | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+  VERSION=$(echo "$LATEST_TAG" | grep -o -E '[0-9]+' | head -1)
+  if [[ -z ${VERSION} ]]; then
+    echo "Err: Unable to determine latest tag version for $ENGINE_NAME"
+    exit 1
+  fi
+
+  TARGET_DIR="$ENGINE_PATH/$VERSION"
+  if [ -d "$TARGET_DIR" ]; then
+    echo "[>] $ENGINE_NAME version ${VERSION} is already present."
+  else
+    mkdir -p "$TARGET_DIR"
+    chown "$SUDO_USER:$SUDO_USER" "$TARGET_DIR"
+
+    if [ -z "$TARGET_DIR"; then
+      echo "[X] $TARGET_DIR is not set."
+      exit 1
+    fi
+
+    # -- download engine
+    git clone --depth 1 --branch "$LATEST_TAG" "$ENGINE_REPO_URL" "$TARGET_DIR"
+
+    cd "$TARGET_DIR/src" || { echo "[X] Failed to enter directory $TARGET_DIR/src"; exit 1; } 
+
+    make -j profile-build ARCH=native
+
+    if [ $? -ne 0 ]; then
+      echo "[X] $ENGINE_NAME $VERSION installation failed during the build process."
+      exit 1
+    fi
+
+    chown "$SUDO_USER:$SUDO_USER" ${ENGINE_NAME,,}
+    chmod +x ${ENGINE_NAME,,}
+    sudo mv ${ENGINE_NAME,,} /usr/local/bin/
+
+    cd "$ENGINE_PATH"
+    SYMLINK="$ENGINE_PATH/current_version"
+    rm -f "$SYMLINK"
+
+
+    ln -s "$TARGET_DIR" "$SYMLINK"
+    echo "[>] $ENGINE_NAME $VERSION installation complete" 
+    
+  fi   
+
+  # -- Enabling SSH
+  SERVICE="ssh"
+  if systemctl is-active --quiet $SERVICE; then
+    echo "[>] SSH is already running."
+  else
+    echo "[X] SSH is stopped. Starting it now..."
+    systemctl start $SERVICE
+  fi
+
+  if systemctl is-enabled --quiet $SERVICE; then
+    echo "[>] SSH is already enabled to start on boot."
+  else
+    echo "[X] SSH is disabled. Enabling it now..."
+    systemctl enable $SERVICE
+  fi
+
+  # -- insert User in DB
+  QUERY="INSERT INTO users (name, lastname) VALUES ('${USER_NAME}', '${USER_LASTNAME}');"
+
+  mariadb -u "$DB_USER" -p"$DB_PASS" "$APP_NAME" -e "$QUERY"
+  if [ $? -eq 0 ]; then
+    echo "Success: Record inserted."
+  else
+    echo "Error: Failed to insert user. Please insert manually."
+  fi
+
+  # -- done
+  echo "Done."
 
