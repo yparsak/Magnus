@@ -168,10 +168,10 @@
   if [[ -z "$USER_NAME" ]]; then
     read -p "Please enter your first name: " USER_NAME
   fi
-  if [[ -n $USER_LASTNAME ]];then
+  if [[ -z $USER_LASTNAME ]];then
     read -p "Please enter your last name: " USER_LASTNAME
   fi
-  if [[ -n $USER_EMAIL ]]; then
+  if [[ -z $USER_EMAIL ]]; then
     read -p "Please enter your email: " USER_EMAIL
   fi
 
@@ -200,17 +200,19 @@
 
   echo "USER_NAME=$USER_NAME"                                >> "$ENV_FILE"
   echo "USER_LASTNAME=$USER_LASTNAME"                        >> "$ENV_FILE"
-  echo "USER_FULLNAME=$USER_FULLNAME"                        >> "$ENV_FILE"
+  echo "USER_FULLNAME=$USER_NAME $USER_LASTNAME"             >> "$ENV_FILE"
+  echo "USER_EMAIL=$USER_EMAIL"                              >> "$ENV_FILE"
  
   echo "LI_USER_API=https://lichess.org/api/games/user"      >> "$ENV_FILE"
   echo "CHESSCOM_USER_API=https://api.chess.com/pub/player"  >> "$ENV_FILE"
-  echo "USER_AGENT=$APP_NAME (contact: $USER_EMAIL )"        >> "$ENV_FILE" 
+  echo "USER_AGENT=${APP_NAME} contact:$USER_EMAIL"     >> "$ENV_FILE" 
 
-  echo "FILES_PATH=$FILES_PATH"                              >> "$ENV_FILE"
   echo "SRC_PATH=$SRC_PATH"                                  >> "$ENV_FILE"
   chmod 600 "$ENV_FILE"
   chown "$SUDO_USER:$SUDO_USER" "$ENV_FILE"
 
+  echo $ENV_FILE
+  exit
 
   # -- Create Database
   if [ -n $SUDO_USER ]; then
@@ -232,4 +234,6 @@
       done
     fi
   fi 
+
+  cd $APP_PATH/scripts && make
 
