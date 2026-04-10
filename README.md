@@ -1,7 +1,7 @@
 # Magnus
 
-
-### Auto Install:
+### Install:
 ```txt
-curl -fsSL https://raw.githubusercontent.com/yparsak/Magnus/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yparsak/Magnus/main/install.sh -o /tmp/install.sh
+sudo bash /tmp/install.sh
 ```

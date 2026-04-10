@@ -25,10 +25,16 @@
     echo "Error: This script requires root privileges. Please use 'sudo'."
     exit 1
   fi
-  if [[ -z ${SUDO_USER} ]]; then
+  if [[ -z "$SUDO_USER" || "$SUDO_USER" == "root" ]]; then
     echo "Warn: Running directly as root is discouraged."
     echo "Please run this as a regular user using 'sudo'."
     exit 1
+  fi
+
+  if [ -z $SUDO_HOME ]; then
+    MYHOME="$HOME"
+  else
+    MYHOME="$SUDO_HOME"
   fi
 
   # --
@@ -46,12 +52,6 @@
   # --
   ENGINE_REPO_URL="$GIT_REPO/official-${ENGINE_NAME,,}/$ENGINE_NAME"
   ENGINE_API_URL="$GIT_API/official-${ENGINE_NAME,,}/$ENGINE_NAME/releases/latest"
-
-  if [ -z $SUDO_HOME ]; then
-    MYHOME="$HOME"
-  else
-    MYHOME="$SUDO_HOME"
-  fi
 
   SRC_PATH="$MYHOME/src"
   APP_PATH="$SRC_PATH/$APP_NAME"
@@ -114,18 +114,23 @@
     done
   fi
 
+  # -- Start Apache
+  sudo systemctl start apache2
+
+  # -- Enable Apache to start on boot
+  sudo systemctl enable apache2
+
   # -- Set directories
-  if [ -n "$SUDO_USER" ]; then
-    mkdir -p "${SRC_PATH}" 
-    mkdir -p "${APP_PATH}"
-    mkdir -p "${ENGINE_PATH}"
-    chown "$SUDO_USER:$SUDO_USER" ${SRC_PATH}
-    chown "$SUDO_USER:$SUDO_USER" ${APP_PATH}
-    chown "$SUDO_USER:$SUDO_USER" ${ENGINE_PATH}
-  fi
+  sudo mkdir -p "${SRC_PATH}" 
+  sudo mkdir -p "${ENGINE_PATH}"
+  sudo chown "$SUDO_USER:$SUDO_USER" ${SRC_PATH}
+  sudo chown "$SUDO_USER:$SUDO_USER" ${ENGINE_PATH}
   
   # -- Install the App
   if [ ! -d "$APP_PATH" ]; then
+
+    sudo mkdir -p "${APP_PATH}"
+    sudo chown "$SUDO_USER:$SUDO_USER" ${APP_PATH}
 
     RESPONSE=$(curl -sL $APP_API_URL)
     DOWNLOAD_URL=$(echo "$RESPONSE" | grep -oP '"tarball_url":\s*"\K[^"]+')
@@ -141,6 +146,7 @@
     FULL_PATH="$APP_PATH/$FILENAME" 
 
     # -- downloading ...
+
     curl -L "$DOWNLOAD_URL" -o "$FULL_PATH"
 
     if [ -f "$FULL_PATH" ]; then
@@ -212,25 +218,23 @@
   chown "$SUDO_USER:$SUDO_USER" "$ENV_FILE"
 
   # -- Create Database
-  if [ -n $SUDO_USER ]; then
-    sudo mariadb -e "CREATE DATABASE IF NOT EXISTS \`${APP_NAME}\`;"
-    sudo mariadb -e "CREATE USER IF NOT EXISTS '${SUDO_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';" 
-    sudo mariadb -e "GRANT ALL PRIVILEGES ON \`${APP_NAME}\`.* TO '${SUDO_USER}'@'localhost';"
-    sudo mariadb -e "FLUSH PRIVILEGES;"
+  sudo mariadb -e "CREATE DATABASE IF NOT EXISTS \`${APP_NAME}\`;"
+  sudo mariadb -e "CREATE USER IF NOT EXISTS '${SUDO_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';" 
+  sudo mariadb -e "GRANT ALL PRIVILEGES ON \`${APP_NAME}\`.* TO '${SUDO_USER}'@'localhost';"
+  sudo mariadb -e "FLUSH PRIVILEGES;"
 
-    # -- Import SQL schema & data
-    if [ -d $APP_PATH/sql ]; then
-      for sql_file in "$APP_PATH/sql"/*.sql; do
-        mysql -u"${SUDO_USER}" -p"$DB_PASS" "${APP_NAME}" < "$sql_file"
-        if [ $? -eq 0 ]; then
-          echo "[>] Successfully imported: $sql_file"
-        else
-          echo "[>] Error importing :  $sql_file"
-          exit 1
-        fi
-      done
-    fi
-  fi 
+  # -- Import SQL schema & data
+  if [ -d $APP_PATH/sql ]; then
+    for sql_file in "$APP_PATH/sql"/*.sql; do
+      mysql -u"${SUDO_USER}" -p"$DB_PASS" "${APP_NAME}" < "$sql_file"
+      if [ $? -eq 0 ]; then
+        echo "[>] Successfully imported: $sql_file"
+      else
+        echo "[>] Error importing :  $sql_file"
+        exit 1
+      fi
+    done
+  fi
 
   cd $APP_PATH/scripts && make
 
@@ -275,8 +279,9 @@
     SYMLINK="$ENGINE_PATH/current_version"
     rm -f "$SYMLINK"
 
-
     ln -s "$TARGET_DIR" "$SYMLINK"
+    chown "$SUDO_USER:$SUDO_USER" "$SYMLINK"
+
     echo "[>] $ENGINE_NAME $VERSION installation complete" 
     
   fi   
