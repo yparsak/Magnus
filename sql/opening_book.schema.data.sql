@@ -31,7 +31,7 @@ CREATE TABLE `opening_book` (
   `pgn` text DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_fen` (`fen`)
-) ENGINE=InnoDB 665 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3665 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3720,4 +3720,4 @@ SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-04-09  8:23:26
+-- Dump completed on 2026-04-10 16:15:03

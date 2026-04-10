@@ -52,10 +52,12 @@ async function updateGameOpenings() {
                 );
                 console.log(`Successfully updated Game ${game.id} with Book ID ${lastFoundBookId}`);
             } else {
-                await conn.query(
+                if (na) {
+                  await conn.query(
                     "UPDATE player_games SET book_id = ? WHERE id = ?",
                     [na.id, game.id]
-                );
+                  );
+                }
                 console.log(`No opening match found for Game ${game.id}`);
             }
         }
