@@ -28,7 +28,7 @@ CREATE TABLE `users` (
   `name` varchar(20) NOT NULL,
   `lastname` varchar(20) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -49,7 +49,7 @@ CREATE TABLE `players` (
   KEY `fk_platform` (`platform_id`),
   CONSTRAINT `fk_platform` FOREIGN KEY (`platform_id`) REFERENCES `platforms` (`id`),
   CONSTRAINT `fk_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -81,7 +81,7 @@ CREATE TABLE `player_games` (
   CONSTRAINT `fk_player_games_book` FOREIGN KEY (`book_id`) REFERENCES `opening_book` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `fk_player_games_platform` FOREIGN KEY (`platform_id`) REFERENCES `platforms` (`id`),
   CONSTRAINT `fk_player_games_player` FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=74 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -98,10 +98,32 @@ CREATE TABLE `game_moves` (
   `short_notation` varchar(10) NOT NULL,
   `long_notation` varchar(15) NOT NULL,
   `side` tinyint(1) NOT NULL DEFAULT 1,
+  `eval_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_game` (`game_id`),
+  KEY `eval_id` (`eval_id`),
+  CONSTRAINT `fk_eval` FOREIGN KEY (`eval_id`) REFERENCES `evaluation` (`id`),
   CONSTRAINT `fk_game` FOREIGN KEY (`game_id`) REFERENCES `player_games` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5370 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `evaluation`
+--
+
+DROP TABLE IF EXISTS `evaluation`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `evaluation` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `fen` varchar(100) NOT NULL,
+  `material_eval` decimal(10,2) DEFAULT NULL,
+  `positional_eval` decimal(10,2) DEFAULT NULL,
+  `nnu_eval` decimal(10,2) DEFAULT NULL,
+  `final_eval` decimal(10,2) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_fen` (`fen`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -113,4 +135,4 @@ CREATE TABLE `game_moves` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-04-10 16:32:39
+-- Dump completed on 2026-04-11  9:41:26

@@ -55,7 +55,8 @@
 
   SRC_PATH="$MYHOME/src"
   APP_PATH="$SRC_PATH/$APP_NAME"
-  ENGINE_PATH="$SRC_PATH/$ENGINE_NAME"
+  ENGINE_SRC_PATH="$SRC_PATH/$ENGINE_NAME"
+  ENGINE_PATH="/usr/local/bin/${ENGINE_NAME,,}"
   ENV_FILE="$APP_PATH/scripts/.env"
 
   # -- Required Packages
@@ -122,9 +123,9 @@
 
   # -- Set directories
   sudo mkdir -p "${SRC_PATH}" 
-  sudo mkdir -p "${ENGINE_PATH}"
+  sudo mkdir -p "${ENGINE_SRC_PATH}"
   sudo chown "$SUDO_USER:$SUDO_USER" ${SRC_PATH}
-  sudo chown "$SUDO_USER:$SUDO_USER" ${ENGINE_PATH}
+  sudo chown "$SUDO_USER:$SUDO_USER" ${ENGINE_SRC_PATH}
   
   # -- Install the App
   if [ ! -d "$APP_PATH" ]; then
@@ -210,10 +211,10 @@
  
   echo "LI_USER_API=https://lichess.org/api/games/user"      >> "$ENV_FILE"
   echo "CHESSCOM_USER_API=https://api.chess.com/pub/player"  >> "$ENV_FILE"
-  echo "USER_AGENT=${APP_NAME}_contact:$USER_EMAIL"           >> "$ENV_FILE" 
+  echo "USER_AGENT=${APP_NAME}_contact:$USER_EMAIL"          >> "$ENV_FILE" 
   echo "SRC_PATH=$SRC_PATH"                                  >> "$ENV_FILE"
+  echo "ENGINE_SRC_PATH=${ENGINE_SRC_PATH}"                  >> "$ENV_FILE"
   echo "ENGINE_PATH=${ENGINE_PATH}"                          >> "$ENV_FILE"
-
   chmod 600 "$ENV_FILE"
   chown "$SUDO_USER:$SUDO_USER" "$ENV_FILE"
 
@@ -247,7 +248,7 @@
     exit 1
   fi
 
-  TARGET_DIR="$ENGINE_PATH/$VERSION"
+  TARGET_DIR="$ENGINE_SRC_PATH/$VERSION"
   if [ -d "$TARGET_DIR" ]; then
     echo "[>] $ENGINE_NAME version ${VERSION} is already present."
   else
@@ -275,8 +276,8 @@
     chmod +x ${ENGINE_NAME,,}
     sudo mv ${ENGINE_NAME,,} /usr/local/bin/
 
-    cd "$ENGINE_PATH"
-    SYMLINK="$ENGINE_PATH/current_version"
+    cd "$ENGINE_SRC_PATH"
+    SYMLINK="$ENGINE_SRC_PATH/current_version"
     rm -f "$SYMLINK"
 
     ln -s "$TARGET_DIR" "$SYMLINK"
