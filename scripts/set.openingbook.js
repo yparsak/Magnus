@@ -1,3 +1,11 @@
+/*
+* 
+* updates player_games 
+* sets player_games.book_id = opening_book.id
+* where player_games.fen=opening_book.fen
+*
+*/
+
 const mariadb = require('mariadb');
 require('dotenv').config();
 

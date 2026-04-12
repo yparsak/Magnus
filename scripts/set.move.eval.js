@@ -1,3 +1,15 @@
+/*
+*
+* loops through game_moves 
+* updates game_moves.eval_id = evaluation.id
+* where game_moves.fen = evaluation.fen
+*
+* if game_moves.fen is not found in evaluation table, then inserts a new row into the evaluation table
+* (new) evaluation.fen = game_moves.fen
+* game_moves.evaluation_id = (new) evaluation.id
+*
+*/
+
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 

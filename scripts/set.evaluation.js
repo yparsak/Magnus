@@ -93,7 +93,7 @@ async function main() {
                     [evals.material, evals.positional, evals.final, row.id]
                 );
 
-                console.log(`Updated ID ${row.id}`);
+               // console.log(`Updated ID ${row.id}`);
             } catch (err) {
                 console.error(`Error on ID ${row.id}:`, err.message);
             }
