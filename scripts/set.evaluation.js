@@ -1,3 +1,9 @@
+/*
+* updates evaluation table where final_eval = null
+* communicates to chess engine, and extracts evaluation values 
+* and stores in evaluation table
+*/
+
 const { spawn } = require('child_process');
 const mysql = require('mysql2/promise');
 require('dotenv').config();
@@ -9,103 +15,171 @@ const DB_CONFIG = {
     database: process.env.DB_NAME,
 };
 
-const SF_PATH=process.env.ENGINE_PATH;
+const ENGINE_PATH=process.env.ENGINE_PATH;
 const DEPTH = 20;
 const TIMEOUT_MS = 60 * 60 * 1000; 
+const MAX_ROWS = 100;
 
-function parseStockfishEval(output) {
-    let material = 0, positional = 0, final = 0;
-    
-    const bucketRegex = /\|\s+(\d+)\s+\|\s+([+-]?\d+\.\d+)\s+\|\s+([+-]?\d+\.\d+)\s+\|\s+([+-]?\d+\.\d+)\s+\|\s+<-- this bucket is used/;
-    const finalRegex = /Final evaluation\s+([+-]?\d+\.\d+)/;
+async function main() {
 
-    const bucketMatch = output.match(bucketRegex);
-    const finalMatch = output.match(finalRegex);
+  let conn;
 
-    if (bucketMatch) {
-        material = parseFloat(bucketMatch[2]);
-        positional = parseFloat(bucketMatch[3]);
-    }
+  let MaterialEval   = 0;
+  let PositionalEval = 0;
+  let FinalEval      = 0 ;
 
-    if (finalMatch) {
-        final = parseFloat(finalMatch[1]);
-    }
+  const scriptTimeout = setTimeout(() => {
+        console.error('Script reached 1 hour limit.');
+        process.exit(1);
+  }, TIMEOUT_MS);
 
-    return { material, positional, final };
+  try {
+    conn = await mysql.createConnection(DB_CONFIG);
+
+    const [rows] = await conn.execute(
+            `SELECT id, fen FROM evaluation WHERE final_eval IS NULL LIMIT ${MAX_ROWS}`
+    );
+
+    for (const row of rows) {
+      try {
+
+        //console.log('>> ',row.fen);
+
+        const engine = spawn(ENGINE_PATH);
+ 
+        engine.on('error', (err) => {
+            console.error('Failed to start chess engine process:', err);
+            process.exit(1);
+        });
+
+        await sendCommand(engine, 'uci', 'uciok');
+        await sendCommand(engine, 'isready', 'readyok');
+        await sendCommand(engine, 'ucinewgame');
+        await sendCommand(engine, `position fen ${row.fen}`, null);
+        //await sendCommand(engine, 'isready', 'readyok');
+ 
+        const rawEval = await sendCommand(engine, 'eval', 'Final evaluation', 10000);
+        // const nnue = parseStaticEval(rawEval); 
+
+        MaterialEval = 0;
+        PositionalEval = 0;
+        FinalEval = 0;
+        const lines = rawEval.split(/\r?\n/);
+       
+
+        lines.forEach(line => {
+
+          // | x |0.00|0.00|0.00| <-- this bucket is used
+          if (line.includes('this bucket is used')) {
+            const segments = line.split('|').map(s => s.trim());
+            // Format: | ndx (index 1) | Material (index 2) | Positional (index 3) |
+
+           if (segments.length >= 4) {
+             MaterialEval = segments[2].replace(/([+-])\s+/g, '$1');;
+             // This removes spaces specifically after a + or - sign
+             PositionalEval = segments[3].replace(/([+-])\s+/g, '$1');
+           }
+
+          }
+
+          // Final Evaluation
+          if (/final evaluation/i.test(line)) {
+            const match = line.match(/[+-]?\d+\.\d+/);
+            if (match) {
+              FinalEval = match[0];
+            }
+          }
+
+        }); 
+
+        //console.log('Material Eval: ', MaterialEval );
+        //console.log('Positional Eval: ', PositionalEval );
+        //console.log('Final Eval: ', FinalEval );
+
+        await conn.execute(
+          `UPDATE evaluation 
+                     SET material_eval = ?, positional_eval = ?, final_eval = ? 
+                     WHERE id = ?`,
+                    [MaterialEval, PositionalEval, FinalEval, row.id]
+                );
+
+        engine.kill();
+
+
+      } catch (err) {
+        console.error(`Error on ID ${row.id}:`, err.message);
+      }
+    } 
+
+  } catch (error) {
+    console.error('Database connection error:', error.message); 
+  } finally {
+    clearTimeout(scriptTimeout);
+    if (conn) await conn.end();
+    console.log('Done.');
+  }
 }
 
-async function getEngineEval(fen) {
+function sendCommand(child, command, terminator, timeoutMs = 5000) {
     return new Promise((resolve, reject) => {
-        const engine = spawn(SF_PATH);
-        let output = '';
-
-        const timer = setTimeout(() => {
-            engine.kill();
-            reject(new Error(`Stockfish timeout for FEN: ${fen}`));
-        }, 20000); 
-
-        engine.stdout.on('data', (data) => {
-            output += data.toString();
-            if (output.includes('Final evaluation')) {
-                engine.stdin.write('quit\n');
+        let buffer = '';
+        const onData = (data) => {
+            buffer += data.toString();
+            if (!terminator || buffer.includes(terminator)) {
+                child.stdout.removeListener('data', onData);
+                clearTimeout(timeout);
+                resolve(buffer);
             }
-        });
+        };
 
-        engine.stdin.write(`position fen ${fen}\n`);
-        engine.stdin.write(`go depth ${DEPTH}\n`);
-        engine.stdin.write(`eval\n`);
+        child.stdout.on('data', onData);
+        const timeout = setTimeout(() => {
+            child.stdout.removeListener('data', onData);
+            reject(new Error(`Stockfish timeout on: ${command}`));
+        }, timeoutMs);
 
-        engine.on('close', () => {
-            clearTimeout(timer);
-            resolve(parseStockfishEval(output));
-        });
-
-        engine.on('error', (err) => {
-            clearTimeout(timer);
-            reject(err);
-        });
+        child.stdin.write(`${command}\n`);
+        if (!terminator) {
+            clearTimeout(timeout);
+            resolve();
+        }
     });
 }
 
-async function main() {
-    let connection;
+function parseEvaluation(content) {
+    const lines = content.split(/\r?\n/);
 
-    const scriptTimeout = setTimeout(() => {
-        console.error('Script reached 1 hour limit.');
-        process.exit(1);
-    }, TIMEOUT_MS);
+    let MaterialEval = "Not found";
+    let PositionalEval = "Not found";
+    let FinalEval = "Not found";
 
-    try {
-        connection = await mysql.createConnection(DB_CONFIG);
-
-        const [rows] = await connection.execute(
-            'SELECT id, fen FROM evaluation WHERE final_eval IS NULL'
-        );
-
-        for (const row of rows) {
-            try {
-                const evals = await getEngineEval(row.fen);
-
-                await connection.execute(
-                    `UPDATE evaluation 
-                     SET material_eval = ?, positional_eval = ?, final_eval = ? 
-                     WHERE id = ?`,
-                    [evals.material, evals.positional, evals.final, row.id]
-                );
-
-               // console.log(`Updated ID ${row.id}`);
-            } catch (err) {
-                console.error(`Error on ID ${row.id}:`, err.message);
+    lines.forEach(line => {
+        // 1. Process the active bucket line
+        if (line.includes('this bucket is used')) {
+            const segments = line.split('|').map(s => s.trim());
+            
+            // Format: | ndx (index 1) | Material (index 2) | Positional (index 3) |
+            if (segments.length >= 4) {
+                MaterialEval = segments[2];
+                // Remove internal spaces (e.g., "+  0.12" becomes "+0.12")
+                PositionalEval = segments[3].replace(/\s+/g, '');
             }
         }
 
-    } catch (error) {
-        console.error('Database connection error:', error.message);
-    } finally {
-        clearTimeout(scriptTimeout);
-        if (connection) await connection.end();
-        console.log('Done.');
-    }
+        // 2. Process the final evaluation line
+        // Case-insensitive search for "final evaluation"
+        if (/final evaluation/i.test(line)) {
+            const match = line.match(/[+-]?\d+\.\d+/);
+            if (match) {
+                FinalEval = match[0];
+            }
+        }
+    });
+
+    // Print results to screen
+    console.log(`MaterialEval:   ${MaterialEval}`);
+    console.log(`PositionalEval: ${PositionalEval}`);
+    console.log(`FinalEval:      ${FinalEval}`);
 }
 
 main();

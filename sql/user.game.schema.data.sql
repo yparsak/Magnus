@@ -119,7 +119,6 @@ CREATE TABLE `evaluation` (
   `fen` varchar(100) NOT NULL,
   `material_eval` decimal(10,2) DEFAULT NULL,
   `positional_eval` decimal(10,2) DEFAULT NULL,
-  `nnu_eval` decimal(10,2) DEFAULT NULL,
   `final_eval` decimal(10,2) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_fen` (`fen`)
@@ -135,4 +134,4 @@ CREATE TABLE `evaluation` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-04-11  9:41:26
+-- Dump completed on 2026-04-12 12:29:17
