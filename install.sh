@@ -63,6 +63,17 @@
   REQUIRED_PKGS=("build-essential" "apache2" "php" "nodejs" "npm" "curl" "git" "openssh-server" "mariadb-server")
   MISSING_PKGS=()
 
+  # -- detect missing packages
+  for PKG in "${REQUIRED_PKGS[@]}"; do
+    if dpkg-query -W -f='${Status}' "$PKG" 2>/dev/null | grep -q "ok installed"; then
+      echo "[>] $PKG is present."
+    else
+      echo "[X] $PKG is missing."
+      MISSING_PKGS+=("$PKG") 
+    fi
+  done  
+
+  # -- install missing packages
   if [ ${#MISSING_PKGS[@]} -eq 0 ]; then
     echo "[>] All required packages are already installed. Nothing to do!"
   else
