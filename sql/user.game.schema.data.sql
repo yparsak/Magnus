@@ -120,6 +120,8 @@ CREATE TABLE `evaluation` (
   `material_eval` decimal(10,2) DEFAULT NULL,
   `positional_eval` decimal(10,2) DEFAULT NULL,
   `final_eval` decimal(10,2) DEFAULT NULL,
+  `is_incheck` tinyint(1) DEFAULT 0,
+  `mate_in` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_fen` (`fen`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
@@ -134,4 +136,4 @@ CREATE TABLE `evaluation` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-04-12 12:29:17
+-- Dump completed on 2026-04-12 21:16:59

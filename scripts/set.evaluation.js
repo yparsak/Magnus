@@ -1,3 +1,4 @@
+
 /*
 * updates evaluation table where final_eval = null
 * communicates to chess engine, and extracts evaluation values 
@@ -22,97 +23,110 @@ const MAX_ROWS = 100;
 
 async function main() {
 
-  let conn;
-
-  let MaterialEval   = 0;
-  let PositionalEval = 0;
-  let FinalEval      = 0 ;
-
   const scriptTimeout = setTimeout(() => {
         console.error('Script reached 1 hour limit.');
         process.exit(1);
   }, TIMEOUT_MS);
 
-  try {
-    conn = await mysql.createConnection(DB_CONFIG);
+  scriptTimeout.unref();
 
+  let conn;
+  let MaterialEval   = 0;
+  let PositionalEval = 0;
+  let FinalEval      = 0;
+  let is_incheck     = null;
+  let in_mate        = null;
+
+  try {
+
+    const engine = spawn(ENGINE_PATH);
+    engine.on('error', (err) => {
+            console.error('Failed to start chess engine process:', err);
+            process.exit(1);
+    });
+
+    conn = await mysql.createConnection(DB_CONFIG);
     const [rows] = await conn.execute(
             `SELECT id, fen FROM evaluation WHERE final_eval IS NULL LIMIT ${MAX_ROWS}`
     );
 
     for (const row of rows) {
-      try {
 
-        //console.log('>> ',row.fen);
+      MaterialEval = 0;
+      PositionalEval = 0;
+      FinalEval = 0;
+      is_incheck = null;
+      mate_in =null;
 
-        const engine = spawn(ENGINE_PATH);
- 
-        engine.on('error', (err) => {
-            console.error('Failed to start chess engine process:', err);
-            process.exit(1);
-        });
+      await sendCommand(engine, 'uci', 'uciok');
+      await sendCommand(engine, 'isready', 'readyok');
+      await sendCommand(engine, 'ucinewgame');    
+      await sendCommand(engine, `position fen ${row.fen}`, null);
 
-        await sendCommand(engine, 'uci', 'uciok');
-        await sendCommand(engine, 'isready', 'readyok');
-        await sendCommand(engine, 'ucinewgame');
-        await sendCommand(engine, `position fen ${row.fen}`, null);
-        //await sendCommand(engine, 'isready', 'readyok');
- 
-        const rawEval = await sendCommand(engine, 'eval', 'Final evaluation', 10000);
-        // const nnue = parseStaticEval(rawEval); 
+      const evalresp = await sendCommand(engine, 'eval', 'Final evaluation', 10000);
+      const eval_lines = evalresp.split(/\r?\n/);
 
-        MaterialEval = 0;
-        PositionalEval = 0;
-        FinalEval = 0;
-        const lines = rawEval.split(/\r?\n/);
-       
-
-        lines.forEach(line => {
-
-          // | x |0.00|0.00|0.00| <-- this bucket is used
-          if (line.includes('this bucket is used')) {
-            const segments = line.split('|').map(s => s.trim());
-            // Format: | ndx (index 1) | Material (index 2) | Positional (index 3) |
-
-           if (segments.length >= 4) {
-             MaterialEval = segments[2].replace(/([+-])\s+/g, '$1');;
-             // This removes spaces specifically after a + or - sign
-             PositionalEval = segments[3].replace(/([+-])\s+/g, '$1');
-           }
-
+  
+      eval_lines.forEach(eval => {
+        if (eval.includes("Final evaluation: none (in check)")) {
+          MaterialEval = 0;
+          PositionalEval = 0;
+          FinalEval = 0;
+          is_incheck = 1;
+          return; 
+        }
+        if (eval.includes("this bucket is used")) {
+          const segments = eval.split('|').map(s => s.trim());
+          // Format: | ndx (index 1) | Material (index 2) | Positional (index 3) |
+          if (segments.length >= 4) {
+            MaterialEval = segments[2].replace(/\s+/g, '');
+            PositionalEval = segments[3].replace(/\s+/g, '');
           }
-
-          // Final Evaluation
-          if (/final evaluation/i.test(line)) {
-            const match = line.match(/[+-]?\d+\.\d+/);
-            if (match) {
-              FinalEval = match[0];
-            }
+        }
+        if (/final evaluation/i.test(eval)) {
+          const eval_match = eval.match(/[+-]?\d+\.\d+/);
+          if (eval_match) {
+            FinalEval = eval_match[0];
           }
+        }
+      });
 
-        }); 
+      const bestmove_resp = await sendCommand(
+        engine, 
+        'go depth 20', 
+        'bestmove', 
+        30000 // 30 seconds
+      );
 
-        //console.log('Material Eval: ', MaterialEval );
-        //console.log('Positional Eval: ', PositionalEval );
-        //console.log('Final Eval: ', FinalEval );
-
-        await conn.execute(
+      const bestmove_lines = bestmove_resp.split(/\r?\n/);
+      bestmove_lines.forEach( bestmove => {
+        // Regex matches "score mate " followed by one or more digits
+        const match = bestmove.match(/score mate (-?\d+)/);
+        if (match) {
+          const current_mate = Math.abs(parseInt(match[1]));
+          // Update mate_in if it's the first one found or smaller than current
+          if (mate_in === 0 || current_mate < mate_in) {
+             mate_in = current_mate;
+          }
+        }
+        if (bestmove.includes("bestmove (none)")) {
+          mate_in = 0;
+        }
+      }); 
+    
+      await conn.execute(
           `UPDATE evaluation 
-                     SET material_eval = ?, positional_eval = ?, final_eval = ? 
-                     WHERE id = ?`,
-                    [MaterialEval, PositionalEval, FinalEval, row.id]
-                );
+           SET material_eval = ?, positional_eval = ?, final_eval = ?, is_incheck = ?, mate_in = ? 
+           WHERE id = ?`,
+           [MaterialEval, PositionalEval, FinalEval, is_incheck, mate_in, row.id]
+      );
 
-        engine.kill();
+    }
 
-
-      } catch (err) {
-        console.error(`Error on ID ${row.id}:`, err.message);
-      }
-    } 
+    engine.kill();
 
   } catch (error) {
-    console.error('Database connection error:', error.message); 
+    console.error('Error:', error.message); 
   } finally {
     clearTimeout(scriptTimeout);
     if (conn) await conn.end();
@@ -144,42 +158,6 @@ function sendCommand(child, command, terminator, timeoutMs = 5000) {
             resolve();
         }
     });
-}
-
-function parseEvaluation(content) {
-    const lines = content.split(/\r?\n/);
-
-    let MaterialEval = "Not found";
-    let PositionalEval = "Not found";
-    let FinalEval = "Not found";
-
-    lines.forEach(line => {
-        // 1. Process the active bucket line
-        if (line.includes('this bucket is used')) {
-            const segments = line.split('|').map(s => s.trim());
-            
-            // Format: | ndx (index 1) | Material (index 2) | Positional (index 3) |
-            if (segments.length >= 4) {
-                MaterialEval = segments[2];
-                // Remove internal spaces (e.g., "+  0.12" becomes "+0.12")
-                PositionalEval = segments[3].replace(/\s+/g, '');
-            }
-        }
-
-        // 2. Process the final evaluation line
-        // Case-insensitive search for "final evaluation"
-        if (/final evaluation/i.test(line)) {
-            const match = line.match(/[+-]?\d+\.\d+/);
-            if (match) {
-                FinalEval = match[0];
-            }
-        }
-    });
-
-    // Print results to screen
-    console.log(`MaterialEval:   ${MaterialEval}`);
-    console.log(`PositionalEval: ${PositionalEval}`);
-    console.log(`FinalEval:      ${FinalEval}`);
 }
 
 main();
