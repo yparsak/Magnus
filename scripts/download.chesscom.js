@@ -56,22 +56,17 @@ async function downloadChessComGames() {
                 let targetArchiveUrl = null;
 
                 if (!player.last_scan) {
-                    // Scenario A: Start from the very first month available
                     targetArchiveUrl = archives[0];
                     console.log(`  No last_scan found. Starting from oldest archive: ${targetArchiveUrl}`);
                 } else {
-                    // Scenario B: Find the archive immediately following the last_scan
                     const lastScanDate = new Date(player.last_scan);
                     const lastScanMonthStr = `${lastScanDate.getUTCFullYear()}/${String(lastScanDate.getUTCMonth() + 1).padStart(2, '0')}`;
-                    
-                    // Find index of the archive that matches our last scan
                     const lastIndex = archives.findIndex(url => url.includes(lastScanMonthStr));
                     
                     if (lastIndex !== -1 && lastIndex < archives.length - 1) {
                         targetArchiveUrl = archives[lastIndex + 1];
                         console.log(`  Resuming. Next month found: ${targetArchiveUrl}`);
                     } else if (lastIndex === -1) {
-                        // If for some reason the last_scan month isn't in archives, default to first
                         targetArchiveUrl = archives[0];
                     } else {
                         console.log(`  Already up to date for ${player.accountname}.`);
@@ -91,7 +86,6 @@ async function downloadChessComGames() {
                     const gameTimestamp = new Date(gameData.end_time * 1000);
                     const gameIdPlatform = gameData.uuid || gameData.url;
 
-                    // 3. Verify if game exists in DB before processing
                     const [exists] = await conn.query(
                         "SELECT id FROM player_games WHERE player_id = ? AND game_id = ?",
                         [player.id, gameIdPlatform]
@@ -106,14 +100,16 @@ async function downloadChessComGames() {
                         const white = getPgnTag(pgn, "White");
                         const playerside = (white.toLowerCase() === player.accountname.toLowerCase()) ? 1 : 0;
 
+                        // UPDATED: Added 'result' to the column list and values
                         const [gameResult] = await conn.query(
-                            `INSERT INTO player_games (player_id, platform_id, game_id, date, side, white, black, white_elo, black_elo, time_control, termination) 
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                            `INSERT INTO player_games (player_id, platform_id, game_id, date, side, white, black, white_elo, black_elo, time_control, termination, result) 
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                             [
                                 player.id, player.platform_id, gameIdPlatform, gameTimestamp, 
                                 playerside, white, getPgnTag(pgn, "Black"),
                                 getPgnTag(pgn, "WhiteElo"), getPgnTag(pgn, "BlackElo"),
-                                getPgnTag(pgn, "TimeControl"), getPgnTag(pgn, "Termination")
+                                getPgnTag(pgn, "TimeControl"), getPgnTag(pgn, "Termination"),
+                                getPgnTag(pgn, "Result") // Extracting Result tag from PGN
                             ]
                         );
 
@@ -146,12 +142,9 @@ async function downloadChessComGames() {
                     }
                 }
 
-                // 5. Update last_scan to the last game of the month processed
-                // If the month was empty, we use a date representing that month to move the pointer forward
                 if (latestTimestampInBatch) {
                     await conn.query("UPDATE players SET last_scan = ? WHERE id = ?", [latestTimestampInBatch, player.id]);
                 } else {
-                    // Progress the pointer even if no NEW games were found in that archive
                     const archiveParts = targetArchiveUrl.split('/');
                     const dummyDate = new Date(Date.UTC(archiveParts[archiveParts.length-2], archiveParts[archiveParts.length-1]-1, 28));
                     await conn.query("UPDATE players SET last_scan = ? WHERE id = ?", [dummyDate, player.id]);

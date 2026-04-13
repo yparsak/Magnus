@@ -99,15 +99,16 @@ async function downloadUserGames() {
                             const white = getPgnTag(pgnContent, "White");
                             const playerside = (white === player.accountname) ? 1 : 0;
 
-                            // Insert Game Metadata
+                            // Insert Game Metadata - UPDATED: Added result column and value
                             const [gameResult] = await conn.query(
-                                `INSERT INTO player_games (player_id, platform_id, game_id, date, side, white, black, white_elo, black_elo, time_control, termination) 
-                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                                `INSERT INTO player_games (player_id, platform_id, game_id, date, side, white, black, white_elo, black_elo, time_control, termination, result) 
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                                 [
                                     player.id, player.platform_id, game.id, gameDate, playerside, 
                                     white, getPgnTag(pgnContent, "Black"),
                                     getPgnTag(pgnContent, "WhiteElo"), getPgnTag(pgnContent, "BlackElo"),
-                                    getPgnTag(pgnContent, "TimeControl"), getPgnTag(pgnContent, "Termination")
+                                    getPgnTag(pgnContent, "TimeControl"), getPgnTag(pgnContent, "Termination"),
+                                    getPgnTag(pgnContent, "Result") // Extracting Result from PGN
                                 ]
                             );
                             
