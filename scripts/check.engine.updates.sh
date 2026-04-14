@@ -22,7 +22,7 @@
   ENGINE_API_URL="$GIT_API/official-${ENGINE_NAME,,}/$ENGINE_NAME/releases/latest"
 
   ENGINE_SRC_PATH="$SRC_PATH/$ENGINE_NAME"
-  ENGINE_PATH="/usr/local/bin/${ENGINE_NAME,,}"
+  USRLOCALBIN="/usr/local/bin/"
 
   # -- Install Stockfish
   echo "Checking $ENGINE_NAME latest version"
@@ -59,7 +59,7 @@
 
     chown "$SUDO_USER:$SUDO_USER" ${ENGINE_NAME,,}
     chmod +x ${ENGINE_NAME,,}
-    sudo mv ${ENGINE_NAME,,} /usr/local/bin/
+    sudo mv ${ENGINE_NAME,,} ${USRLOCALBIN}
 
     cd "$ENGINE_SRC_PATH"
     SYMLINK="$ENGINE_SRC_PATH/current_version"

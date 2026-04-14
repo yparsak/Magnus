@@ -52,8 +52,9 @@
   SRC_PATH="$MYHOME/src"
   APP_PATH="$SRC_PATH/$APP_NAME"
   ENGINE_SRC_PATH="$SRC_PATH/$ENGINE_NAME"
-  ENGINE_PATH="/usr/local/bin/${ENGINE_NAME,,}"
   ENV_FILE="$APP_PATH/scripts/.env"
+
+  USRLOCALBIN="/usr/local/bin/"
 
   # -- Required Packages
   REQUIRED_PKGS=("build-essential" "apache2" "php" "nodejs" "npm" "curl" "git" "openssh-server" "mariadb-server")
@@ -221,7 +222,7 @@
   echo "USER_AGENT=${APP_NAME}_contact:$USER_EMAIL"          >> "$ENV_FILE" 
   echo "SRC_PATH=$SRC_PATH"                                  >> "$ENV_FILE"
   echo "ENGINE_SRC_PATH=${ENGINE_SRC_PATH}"                  >> "$ENV_FILE"
-  echo "ENGINE_PATH=${ENGINE_PATH}"                          >> "$ENV_FILE"
+  echo "ENGINE_PATH=${USRLOCALBIN}${ENGINE_NAME,,}"          >> "$ENV_FILE"
   chmod 600 "$ENV_FILE"
   chown "$SUDO_USER:$SUDO_USER" "$ENV_FILE"
 
@@ -281,7 +282,7 @@
 
     chown "$SUDO_USER:$SUDO_USER" ${ENGINE_NAME,,}
     chmod +x ${ENGINE_NAME,,}
-    sudo mv ${ENGINE_NAME,,} /usr/local/bin/
+    sudo mv ${ENGINE_NAME,,} ${USERLOCALBIN}
 
     cd "$ENGINE_SRC_PATH"
     SYMLINK="$ENGINE_SRC_PATH/current_version"
