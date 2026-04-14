@@ -31,11 +31,7 @@
     exit 1
   fi
 
-  if [ -z $SUDO_HOME ]; then
-    MYHOME="$HOME"
-  else
-    MYHOME="$SUDO_HOME"
-  fi
+  MYHOME="$SUDO_HOME"
 
   # --
   APP_NAME="Magnus"
@@ -266,7 +262,7 @@
     mkdir -p "$TARGET_DIR"
     chown "$SUDO_USER:$SUDO_USER" "$TARGET_DIR"
 
-    if [ -z "$TARGET_DIR"; then
+    if [ -z "$TARGET_DIR" ]; then
       echo "[X] $TARGET_DIR is not set."
       exit 1
     fi
@@ -315,15 +311,99 @@
   fi
 
   # -- insert User in DB
-  QUERY="INSERT INTO users (name, lastname) VALUES ('${USER_NAME}', '${USER_LASTNAME}');"
+  QUERY="INSERT INTO users (name, lastname) 
+         SELECT '${USER_NAME}', '${USER_LASTNAME}' 
+         FROM DUAL 
+         WHERE NOT EXISTS (
+           SELECT 1 FROM users 
+           WHERE name = '${USER_NAME}' AND lastname = '${USER_LASTNAME}'
+  );"
 
   mariadb -u "$DB_USER" -p"$DB_PASS" "$APP_NAME" -e "$QUERY"
   if [ $? -eq 0 ]; then
-    echo "Success: Record inserted."
+    echo "Process complete: Database checked and updated if necessary."
   else
     echo "Error: Failed to insert user. Please insert manually."
   fi
 
+
+  # -- add cronjobs
+  CURRENT_CRON=$(crontab -l 2>/dev/null)
+  PROGRAM_NAME='download.lichessorg.js'
+  * 1am every day
+  CRON_SCHEDULE="0 1 * * *"
+  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME}"
+  if echo "$CURRENT_CRON" | grep -Fq "$PROGRAM_NAME"; then
+    echo "Task for '$PROGRAM_NAME' is already scheduled."
+  else
+    (echo "$CURRENT_CRON"; echo "$CRON_JOB") | crontab -
+    echo "Successfully scheduled task for '$PROGRAM_NAME'"
+  fi
+
+  # --
+  CURRENT_CRON=$(crontab -l 2>/dev/null)
+  PROGRAM_NAME='download.chesscom.js'
+  * 2am every day
+  CRON_SCHEDULE="0 2 * * *"
+  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME}"
+  if echo "$CURRENT_CRON" | grep -Fq "$PROGRAM_NAME"; then
+    echo "Task for '$PROGRAM_NAME' is already scheduled."
+  else
+    (echo "$CURRENT_CRON"; echo "$CRON_JOB") | crontab -
+    echo "Successfully scheduled task for '$PROGRAM_NAME'"
+  fi
+
+  # --
+  CURRENT_CRON=$(crontab -l 2>/dev/null)
+  PROGRAM_NAME='set.openingbook.js'
+  * 3am every day
+  CRON_SCHEDULE="0 3 * * *"
+  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME}"
+  if echo "$CURRENT_CRON" | grep -Fq "$PROGRAM_NAME"; then
+    echo "Task for '$PROGRAM_NAME' is already scheduled."
+  else
+    (echo "$CURRENT_CRON"; echo "$CRON_JOB") | crontab -
+    echo "Successfully scheduled task for '$PROGRAM_NAME'"
+  fi 
+
+  # --
+  CURRENT_CRON=$(crontab -l 2>/dev/null)
+  PROGRAM_NAME='set.move.eval.js'
+  * every hour, at *:00
+  CRON_SCHEDULE="0 * * * *"
+  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME}"
+  if echo "$CURRENT_CRON" | grep -Fq "$PROGRAM_NAME"; then
+    echo "Task for '$PROGRAM_NAME' is already scheduled."
+  else
+    (echo "$CURRENT_CRON"; echo "$CRON_JOB") | crontab -
+    echo "Successfully scheduled task for '$PROGRAM_NAME'"
+  fi 
+
+  # --
+  CURRENT_CRON=$(crontab -l 2>/dev/null)
+  PROGRAM_NAME='set.evaluation.js'
+  * every hour at *:30
+  CRON_SCHEDULE="30 * * * *"
+  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME}"
+  if echo "$CURRENT_CRON" | grep -Fq "$PROGRAM_NAME"; then
+    echo "Task for '$PROGRAM_NAME' is already scheduled."
+  else
+    (echo "$CURRENT_CRON"; echo "$CRON_JOB") | crontab -
+    echo "Successfully scheduled task for '$PROGRAM_NAME'"
+  fi 
+
+  CURRENT_CRON=$(crontab -l 2>/dev/null)
+  PROGRAM_NAME='check.engine.updates.sh'
+  * 5am, 1st day of every month
+  CRON_SCHEDULE="0 5 1 * *"
+  CRON_JOB="$CRON_SCHEDULE sudo ${APP_PATH}/scripts/${PROGRAM_NAME}"
+  if echo "$CURRENT_CRON" | grep -Fq "$PROGRAM_NAME"; then
+    echo "Task for '$PROGRAM_NAME' is already scheduled."
+  else
+    (echo "$CURRENT_CRON"; echo "$CRON_JOB") | crontab -
+    echo "Successfully scheduled task for '$PROGRAM_NAME'"
+  fi 
+  
   # -- done
   echo "Done."
 
