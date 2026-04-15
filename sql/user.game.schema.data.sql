@@ -72,6 +72,7 @@ CREATE TABLE `player_games` (
   `white_elo` smallint(6) DEFAULT NULL,
   `black_elo` smallint(6) DEFAULT NULL,
   `termination` varchar(255) DEFAULT NULL,
+  `points` tinyint(4) DEFAULT NULL,
   `result` varchar(10) DEFAULT NULL,
   `time_control` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -136,4 +137,4 @@ CREATE TABLE `evaluation` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-04-13  8:01:31
+-- Dump completed on 2026-04-15 19:52:29

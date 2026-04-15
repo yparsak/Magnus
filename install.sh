@@ -57,7 +57,7 @@
   USRLOCALBIN="/usr/local/bin/"
 
   # -- Required Packages
-  REQUIRED_PKGS=("build-essential" "apache2" "php" "nodejs" "npm" "curl" "git" "openssh-server" "mariadb-server")
+  REQUIRED_PKGS=("build-essential" "nodejs" "npm" "curl" "git" "openssh-server" "mariadb-server")
   MISSING_PKGS=()
 
   # -- detect missing packages
@@ -122,12 +122,6 @@
       fi
     done
   fi
-
-  # -- Start Apache
-  sudo systemctl start apache2
-
-  # -- Enable Apache to start on boot
-  sudo systemctl enable apache2
 
   # -- Set directories
   sudo mkdir -p "${SRC_PATH}" 
@@ -329,81 +323,76 @@
 
 
   # -- add cronjobs
-  CURRENT_CRON=$(crontab -l 2>/dev/null)
   PROGRAM_NAME='download.lichessorg.js'
-  * 1am every day
+  # 1am every day
   CRON_SCHEDULE="0 1 * * *"
-  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME}"
-  if echo "$CURRENT_CRON" | grep -Fq "$PROGRAM_NAME"; then
-    echo "Task for '$PROGRAM_NAME' is already scheduled."
+  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> /tmp/Magnus.process.log"
+  if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
+    echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
   else
-    (echo "$CURRENT_CRON"; echo "$CRON_JOB") | crontab -
-    echo "Successfully scheduled task for '$PROGRAM_NAME'"
+    (sudo -u "$SUDO_USER" crontab -l 2>/dev/null; echo "$CRON_JOB") | sudo -u "$SUDO_USER" crontab -
+    echo "Success: The task ${PROGRAM_NAME} added to ${SUDO_USER}'s crontab."
   fi
 
   # --
-  CURRENT_CRON=$(crontab -l 2>/dev/null)
   PROGRAM_NAME='download.chesscom.js'
-  * 2am every day
+  # 2am every day
   CRON_SCHEDULE="0 2 * * *"
-  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME}"
-  if echo "$CURRENT_CRON" | grep -Fq "$PROGRAM_NAME"; then
-    echo "Task for '$PROGRAM_NAME' is already scheduled."
+  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> /tmp/Magnus.process.log"
+  if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
+    echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
   else
-    (echo "$CURRENT_CRON"; echo "$CRON_JOB") | crontab -
-    echo "Successfully scheduled task for '$PROGRAM_NAME'"
+    (sudo -u "$SUDO_USER" crontab -l 2>/dev/null; echo "$CRON_JOB") | sudo -u "$SUDO_USER" crontab -
+    echo "Success: The task ${PROGRAM_NAME} added to ${SUDO_USER}'s crontab."
   fi
 
   # --
-  CURRENT_CRON=$(crontab -l 2>/dev/null)
   PROGRAM_NAME='set.openingbook.js'
-  * 3am every day
+  # 3am every day
   CRON_SCHEDULE="0 3 * * *"
-  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME}"
-  if echo "$CURRENT_CRON" | grep -Fq "$PROGRAM_NAME"; then
-    echo "Task for '$PROGRAM_NAME' is already scheduled."
+  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> /tmp/Magnus.process.log"
+  if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
+    echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
   else
-    (echo "$CURRENT_CRON"; echo "$CRON_JOB") | crontab -
-    echo "Successfully scheduled task for '$PROGRAM_NAME'"
-  fi 
+    (sudo -u "$SUDO_USER" crontab -l 2>/dev/null; echo "$CRON_JOB") | sudo -u "$SUDO_USER" crontab -
+    echo "Success: The task ${PROGRAM_NAME} added to ${SUDO_USER}'s crontab."
+  fi
 
   # --
-  CURRENT_CRON=$(crontab -l 2>/dev/null)
   PROGRAM_NAME='set.move.eval.js'
-  * every hour, at *:00
+  # every hour, at *:00
   CRON_SCHEDULE="0 * * * *"
-  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME}"
-  if echo "$CURRENT_CRON" | grep -Fq "$PROGRAM_NAME"; then
-    echo "Task for '$PROGRAM_NAME' is already scheduled."
+  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> /tmp/Magnus.process.log"
+  if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
+    echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
   else
-    (echo "$CURRENT_CRON"; echo "$CRON_JOB") | crontab -
-    echo "Successfully scheduled task for '$PROGRAM_NAME'"
-  fi 
+    (sudo -u "$SUDO_USER" crontab -l 2>/dev/null; echo "$CRON_JOB") | sudo -u "$SUDO_USER" crontab -
+    echo "Success: The task ${PROGRAM_NAME} added to ${SUDO_USER}'s crontab."
+  fi
 
   # --
-  CURRENT_CRON=$(crontab -l 2>/dev/null)
   PROGRAM_NAME='set.evaluation.js'
-  * every hour at *:30
+  # every hour at *:30
   CRON_SCHEDULE="30 * * * *"
-  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME}"
-  if echo "$CURRENT_CRON" | grep -Fq "$PROGRAM_NAME"; then
-    echo "Task for '$PROGRAM_NAME' is already scheduled."
+  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> /tmp/Magnus.process.log"
+  if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
+    echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
   else
-    (echo "$CURRENT_CRON"; echo "$CRON_JOB") | crontab -
-    echo "Successfully scheduled task for '$PROGRAM_NAME'"
-  fi 
+    (sudo -u "$SUDO_USER" crontab -l 2>/dev/null; echo "$CRON_JOB") | sudo -u "$SUDO_USER" crontab -
+    echo "Success: The task ${PROGRAM_NAME} added to ${SUDO_USER}'s crontab."
+  fi
 
-  CURRENT_CRON=$(crontab -l 2>/dev/null)
+  # --
   PROGRAM_NAME='check.engine.updates.sh'
-  * 5am, 1st day of every month
+  # 5am, 1st day of every month
   CRON_SCHEDULE="0 5 1 * *"
-  CRON_JOB="$CRON_SCHEDULE sudo ${APP_PATH}/scripts/${PROGRAM_NAME}"
-  if echo "$CURRENT_CRON" | grep -Fq "$PROGRAM_NAME"; then
-    echo "Task for '$PROGRAM_NAME' is already scheduled."
+  CRON_JOB="$CRON_SCHEDULE sudo ${APP_PATH}/scripts/${PROGRAM_NAME} >> /tmp/Magnus.process.log"
+  if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
+    echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
   else
-    (echo "$CURRENT_CRON"; echo "$CRON_JOB") | crontab -
-    echo "Successfully scheduled task for '$PROGRAM_NAME'"
-  fi 
+    (sudo -u "$SUDO_USER" crontab -l 2>/dev/null; echo "$CRON_JOB") | sudo -u "$SUDO_USER" crontab -
+    echo "Success: The task ${PROGRAM_NAME} added to ${SUDO_USER}'s crontab."
+  fi
   
   # -- done
   echo "Done."

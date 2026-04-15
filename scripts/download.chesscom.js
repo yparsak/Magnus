@@ -100,16 +100,36 @@ async function downloadChessComGames() {
                         const white = getPgnTag(pgn, "White");
                         const playerside = (white.toLowerCase() === player.accountname.toLowerCase()) ? 1 : 0;
 
-                        // UPDATED: Added 'result' to the column list and values
+                        const resultTag = getPgnTag(pgn, "Result");
+                        let points = 0;
+
+                        if (resultTag === "1/2-1/2") {
+                          points = 1;
+                        } else if (resultTag === "1-0") {
+                          // White won: 2 points if player is white (1), 0 if black (0)
+                          points = (playerside === 1) ? 2 : 0;
+                        } else if (resultTag === "0-1") {
+                          // Black won: 2 points if player is black (0), 0 if white (1)
+                          points = (playerside === 0) ? 2 : 0;
+                        } 
+
                         const [gameResult] = await conn.query(
-                            `INSERT INTO player_games (player_id, platform_id, game_id, date, side, white, black, white_elo, black_elo, time_control, termination, result) 
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                            `INSERT INTO player_games (player_id, platform_id, game_id, date, side, white, black, white_elo, black_elo, time_control, termination, result, points)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                             [
-                                player.id, player.platform_id, gameIdPlatform, gameTimestamp, 
-                                playerside, white, getPgnTag(pgn, "Black"),
-                                getPgnTag(pgn, "WhiteElo"), getPgnTag(pgn, "BlackElo"),
-                                getPgnTag(pgn, "TimeControl"), getPgnTag(pgn, "Termination"),
-                                getPgnTag(pgn, "Result") // Extracting Result tag from PGN
+                                player.id, 
+                                player.platform_id, 
+                                gameIdPlatform, 
+                                gameTimestamp,
+                                playerside, 
+                                white, 
+                                getPgnTag(pgn, "Black"),
+                                getPgnTag(pgn, "WhiteElo"), 
+                                getPgnTag(pgn, "BlackElo"),
+                                getPgnTag(pgn, "TimeControl"), 
+                                getPgnTag(pgn, "Termination"),
+                                resultTag,
+                                points // Added point value
                             ]
                         );
 
