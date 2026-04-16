@@ -242,6 +242,7 @@
   fi
 
   cd $APP_PATH/scripts && make
+  cd $APP_PATH/app && make
 
   # -- Install Stockfish
   echo "Checking $ENGINE_NAME latest version"
@@ -289,7 +290,10 @@
 
     echo "[>] $ENGINE_NAME $VERSION installation complete" 
     
-  fi   
+  fi 
+
+  sudo chown -R "$SUDO_USER:$SUDO_USER" ${APP_PATH}
+  sudo chown -R "$SUDO_USER:$SUDO_USER" ${ENGINE_SRC_PATH}  
 
   # -- Enabling SSH
   SERVICE="ssh"
