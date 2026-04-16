@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web App Clone</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="nav-left">
+            <div class="preferences-icon">⚙</div>
+            
+            <h2 class="logo-title">Magnus</h2>
+
+            <div class="menu-dropdown-trigger">
+              <span>Play</span>
+              <div class="menu-dropdown-content">
+        <a href="#">Create a game</a>
+        <a href="#">DUMMY TEXT 2</a>
+        <a href="#">DUMMY TEXT 3</a>
+        <a href="#">DUMMY TEXT 4</a>
+              </div>
+            </div>
+
+            <div class="menu-dropdown-trigger">
+              <span>Tools</span>
+              <div class="menu-dropdown-content">
+        <a href="#">DUMMY TEXT 2</a>
+        <a href="#">DUMMY TEXT 3</a>
+        <a href="#">DUMMY TEXT 4</a>
+              </div>
+            </div>
+
+
+        </div>
+    </header>
+
+    <main class="container">
+        <aside class="pane pane-left">
+            <div class="dummy-content">
+        <table>
+        <tbody>
+            <% if (userList.length > 0) { %>
+                <% userList.forEach(user => { %>
+                    <tr>
+                        <td><%= user.name %></td>
+                        <td><%= user.lastname %></td>
+                    </tr>
+                <% }); %>
+            <% } else { %>
+                <tr>
+                    <td colspan="2">No users found.</td>
+                </tr>
+            <% } %>
+        </tbody>
+    </table>
+            </div>
+        </aside>
+
+        <section class="pane pane-middle">
+            <div class="dummy-content">Main Content Area</div>
+        </section>
+
+        <aside class="pane pane-right">
+            <div class="dummy-content">Right Sidebar</div>
+        </aside>
+    </main>
+
+</body>
+</html>

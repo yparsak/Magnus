@@ -24,6 +24,10 @@ function getPgnTag(pgn, tag) {
 }
 
 async function downloadChessComGames() {
+
+    const now = new Date();
+    console.log(`Downloading chess.com games @ ${now.toLocaleString()}`);
+
     let conn;
     try {
         conn = await mysql.createConnection({

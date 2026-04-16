@@ -28,6 +28,10 @@ function getPgnTag(pgn, tag) {
 }
 
 async function downloadUserGames() {
+
+    const now = new Date();
+    console.log(`Downloading lichess.org games @ ${now.toLocaleString()}`);
+
     let conn;
     try {
         conn = await mysql.createConnection({
@@ -164,7 +168,7 @@ async function downloadUserGames() {
                             }
 
                             await conn.commit();
-                            console.log(`    [Synced: ${game.id}]`);
+                            //console.log(`    [Synced: ${game.id}]`);
                             lastGameTimestamp = game.createdAt;
 
                         } catch (err) {

@@ -220,6 +220,8 @@
   chmod 600 "$ENV_FILE"
   chown "$SUDO_USER:$SUDO_USER" "$ENV_FILE"
 
+  cp "$ENV_FILE" "$APP_PATH/app/."
+
   # -- Create Database
   sudo mariadb -e "CREATE DATABASE IF NOT EXISTS \`${APP_NAME}\`;"
   sudo mariadb -e "CREATE USER IF NOT EXISTS '${SUDO_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';" 
@@ -324,8 +326,8 @@
 
   # -- add cronjobs
   PROGRAM_NAME='download.lichessorg.js'
-  # 1am every day
-  CRON_SCHEDULE="0 1 * * *"
+  # 1am 2am every day
+  CRON_SCHEDULE="0 1,2 * * *"
   CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> /tmp/Magnus.process.log"
   if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
     echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
@@ -336,8 +338,8 @@
 
   # --
   PROGRAM_NAME='download.chesscom.js'
-  # 2am every day
-  CRON_SCHEDULE="0 2 * * *"
+  # 3am 4am  every day
+  CRON_SCHEDULE="0 3,4 * * *"
   CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> /tmp/Magnus.process.log"
   if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
     echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
@@ -348,8 +350,8 @@
 
   # --
   PROGRAM_NAME='set.openingbook.js'
-  # 3am every day
-  CRON_SCHEDULE="0 3 * * *"
+  # 5am every day
+  CRON_SCHEDULE="0 5 * * *"
   CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> /tmp/Magnus.process.log"
   if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
     echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
