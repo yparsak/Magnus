@@ -312,20 +312,20 @@
   fi
 
   # -- insert User in DB
-  QUERY="INSERT INTO users (name, lastname) 
-         SELECT '${USER_NAME}', '${USER_LASTNAME}' 
-         FROM DUAL 
-         WHERE NOT EXISTS (
-           SELECT 1 FROM users 
-           WHERE name = '${USER_NAME}' AND lastname = '${USER_LASTNAME}'
-  );"
+  # QUERY="INSERT INTO users (name, lastname) 
+  #       SELECT '${USER_NAME}', '${USER_LASTNAME}' 
+  #       FROM DUAL 
+  #       WHERE NOT EXISTS (
+  #         SELECT 1 FROM users 
+  #          WHERE name = '${USER_NAME}' AND lastname = '${USER_LASTNAME}'
+  # );"
 
-  mariadb -u "$DB_USER" -p"$DB_PASS" "$APP_NAME" -e "$QUERY"
-  if [ $? -eq 0 ]; then
-    echo "Process complete: Database checked and updated if necessary."
-  else
-    echo "Error: Failed to insert user. Please insert manually."
-  fi
+  # mariadb -u "$DB_USER" -p"$DB_PASS" "$APP_NAME" -e "$QUERY"
+  #if [ $? -eq 0 ]; then
+  #  echo "Process complete: Database checked and updated if necessary."
+  #else
+  #  echo "Error: Failed to insert user. Please insert manually."
+  #fi
 
 
   # -- add cronjobs
