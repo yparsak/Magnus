@@ -14,9 +14,14 @@
     <aside class="pane pane-left">
       <table>
         <tbody>
-          <th><%= player.name %> <%= player.lastname %></th>
+          <th colspan="2"><%= player.name %> <%= player.lastname %></th>
+          <% if (accounts.length > 0) {%>
+            <% accounts.forEach(account => { %>
+              <tr><td><%= account.name %></td><td><%= account.accountname %> </td></tr>
+            <% }); %>
+          <% } %>
            <tr>
-             <td>
+             <td colspan="2">
                <form action="/account/add" method="GET">
                  <button type="submit" name="playerId" value="<%= player.id %>"class="add">Add Account</button>
                </form>

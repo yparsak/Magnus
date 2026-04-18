@@ -25,7 +25,15 @@
             [playerId]
         );
         if (rows.length > 0) {
-            res.render('player', { player: rows[0] });
+
+
+          const [accounts] = await pool.query(
+            `select a.id, a.accountname, p.name from accounts a left join platforms p on a.platform_id = p.id where a.player_id = ?`,
+             [rows[0].id] 
+          );
+
+          res.render('player', { player: rows[0], accounts: accounts });
+
         } else {
             res.redirect('/');
         }
