@@ -19,7 +19,7 @@
     if (rows.length) {
       res.render('index', { playerList: rows });
     } else {
-      res.redirect('/add_player');
+      res.redirect('/player/add');
     }  
 
     } catch (err) {

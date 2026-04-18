@@ -38,7 +38,7 @@ async function downloadChessComGames() {
         });
 
         const [accounts] = await conn.execute(
-            `SELECT a.id, a.user_id, a.accountname, a.last_scan, pl.id as platform_id 
+            `SELECT a.id, a.player_id, a.accountname, a.last_scan, pl.id as platform_id 
              FROM accounts a
              JOIN platforms pl ON a.platform_id = pl.id
              WHERE pl.name = 'chess.com'`
@@ -102,7 +102,7 @@ async function downloadChessComGames() {
                     try {
                         const pgn = gameData.pgn || "";
                         const white = getPgnTag(pgn, "White");
-                        const playerside = (white.toLowerCase() === player.accountname.toLowerCase()) ? 1 : 0;
+                        const playerside = (white.toLowerCase() === account.accountname.toLowerCase()) ? 1 : 0;
 
                         const resultTag = getPgnTag(pgn, "Result");
                         let points = 0;

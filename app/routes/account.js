@@ -148,7 +148,7 @@ async function checkChessComUser(user) {
 
    addPlayerAccount(playerId, platform, accountName)
 
-    return res.redirect('/');
+    return res.redirect(`/player?id=${playerId}`);
 
   });
 
