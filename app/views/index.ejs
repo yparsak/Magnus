@@ -15,10 +15,10 @@
       <table>
         <tbody>
           <th>Players</th>
-           <% if (userList.length > 0) { %>
-             <% userList.forEach(user => { %>
+           <% if (playerList.length > 0) { %>
+             <% playerList.forEach(player => { %>
                 <tr>
-                  <td><a href="/user?id=<%= user.id %>"> <%= user.name %> <%= user.lastname %></a></td>
+                  <td><a href="/player?id=<%= player.id %>"> <%= player.name %> <%= player.lastname %></a></td>
                 </tr>
              <% }); %>
            <% } else { %>
@@ -28,7 +28,7 @@
            <% } %>
            <tr>
              <td>
-      <form action="/add_user" method="GET">
+      <form action="/player/add" method="GET">
         <button type="submit" name="action" class="add">Add</button>
       </form>
              </td>

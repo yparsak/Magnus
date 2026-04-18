@@ -14,12 +14,12 @@
 
   router.get('/', async (req, res) => {
     try {
-    const [rows] = await pool.query('SELECT id, name, lastname FROM users LIMIT 10');
+    const [rows] = await pool.query('SELECT id, name, lastname FROM players LIMIT 10');
 
     if (rows.length) {
-      res.render('index', { userList: rows });
+      res.render('index', { playerList: rows });
     } else {
-      res.redirect('/add_user');
+      res.redirect('/add_player');
     }  
 
     } catch (err) {

@@ -37,20 +37,20 @@ async function downloadChessComGames() {
             database: process.env.DB_NAME
         });
 
-        const [players] = await conn.execute(
-            `SELECT p.id, p.user_id, p.accountname, p.last_scan, pl.id as platform_id 
-             FROM players p
-             JOIN platforms pl ON p.platform_id = pl.id
+        const [accounts] = await conn.execute(
+            `SELECT a.id, a.user_id, a.accountname, a.last_scan, pl.id as platform_id 
+             FROM accounts a
+             JOIN platforms pl ON a.platform_id = pl.id
              WHERE pl.name = 'chess.com'`
         );
 
-        for (const player of players) {
-            console.log(`Processing: ${player.accountname}`);
+        for (const account of accounts) {
+            console.log(`Processing: ${account.accountname}`);
 
             try {
                 // 1. Get all available monthly archives for this player
                 const archiveListRes = await axios.get(
-                    `${process.env.CHESSCOM_USER_API}/${player.accountname}/games/archives`,
+                    `${process.env.CHESSCOM_USER_API}/${account.accountname}/games/archives`,
                     { headers: { 'User-Agent': process.env.USER_AGENT } }
                 );
                 
@@ -59,11 +59,11 @@ async function downloadChessComGames() {
 
                 let targetArchiveUrl = null;
 
-                if (!player.last_scan) {
+                if (!account.last_scan) {
                     targetArchiveUrl = archives[0];
                     console.log(`  No last_scan found. Starting from oldest archive: ${targetArchiveUrl}`);
                 } else {
-                    const lastScanDate = new Date(player.last_scan);
+                    const lastScanDate = new Date(account.last_scan);
                     const lastScanMonthStr = `${lastScanDate.getUTCFullYear()}/${String(lastScanDate.getUTCMonth() + 1).padStart(2, '0')}`;
                     const lastIndex = archives.findIndex(url => url.includes(lastScanMonthStr));
                     
@@ -73,7 +73,7 @@ async function downloadChessComGames() {
                     } else if (lastIndex === -1) {
                         targetArchiveUrl = archives[0];
                     } else {
-                        console.log(`  Already up to date for ${player.accountname}.`);
+                        console.log(`  Already up to date for ${account.accountname}.`);
                         continue;
                     }
                 }
@@ -91,8 +91,8 @@ async function downloadChessComGames() {
                     const gameIdPlatform = gameData.uuid || gameData.url;
 
                     const [exists] = await conn.query(
-                        "SELECT id FROM player_games WHERE player_id = ? AND game_id = ?",
-                        [player.id, gameIdPlatform]
+                        "SELECT id FROM player_games WHERE account_id = ? AND game_id = ?",
+                        [account.id, gameIdPlatform]
                     );
 
                     if (exists.length > 0) continue;
@@ -118,11 +118,11 @@ async function downloadChessComGames() {
                         } 
 
                         const [gameResult] = await conn.query(
-                            `INSERT INTO player_games (player_id, platform_id, game_id, date, side, white, black, white_elo, black_elo, time_control, termination, result, points)
+                            `INSERT INTO player_games (account_id, platform_id, game_id, date, side, white, black, white_elo, black_elo, time_control, termination, result, points)
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                             [
-                                player.id, 
-                                player.platform_id, 
+                                account.id, 
+                                account.platform_id, 
                                 gameIdPlatform, 
                                 gameTimestamp,
                                 playerside, 
@@ -167,17 +167,17 @@ async function downloadChessComGames() {
                 }
 
                 if (latestTimestampInBatch) {
-                    await conn.query("UPDATE players SET last_scan = ? WHERE id = ?", [latestTimestampInBatch, player.id]);
+                    await conn.query("UPDATE accounts SET last_scan = ? WHERE id = ?", [latestTimestampInBatch, account.id]);
                 } else {
                     const archiveParts = targetArchiveUrl.split('/');
                     const dummyDate = new Date(Date.UTC(archiveParts[archiveParts.length-2], archiveParts[archiveParts.length-1]-1, 28));
-                    await conn.query("UPDATE players SET last_scan = ? WHERE id = ?", [dummyDate, player.id]);
+                    await conn.query("UPDATE accounts SET last_scan = ? WHERE id = ?", [dummyDate, account.id]);
                 }
 
                 console.log(`  Finished processing month archive: ${targetArchiveUrl}`);
 
             } catch (apiErr) {
-                console.error(`  API Error for ${player.accountname}:`, apiErr.message);
+                console.error(`  API Error for ${account.accountname}:`, apiErr.message);
             }
         }
     } catch (error) {

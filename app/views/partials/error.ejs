@@ -1,5 +1,11 @@
 <% if (error) { %>
   <% if (error === 'already_exists') { %>
-    <label>User Already Exists in the Database</label>
+    <label>Player Already Exists in the Database</label>
   <% } %>
+  <% if (error === 'missing_fields') { %>
+    <label>Missing Fields in the Form</label>
+  <% } %>
+  <% if (error === 'account_doesnt_exist') { %>
+    <label>Account doesnt exist</label>
+  <% } %>  
 <% } %>

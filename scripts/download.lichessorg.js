@@ -42,22 +42,22 @@ async function downloadUserGames() {
         });
 
         // Get all users from the database
-        const [users] = await conn.execute('SELECT id, name, lastname FROM users');
+        const [players] = await conn.execute('SELECT id, name, lastname FROM players');
 
-        for (const user of users) {
-            console.log(`Processing User: ${user.name} ${user.lastname}`);
+        for (const player of players) {
+            console.log(`Processing User: ${player.name} ${player.lastname}`);
 
-            // Fetch player accounts for this user specifically for Lichess
-            const [players] = await conn.execute(
-                `SELECT p.id, p.accountname, p.last_scan, pl.id as platform_id 
-                 FROM players p
-                 JOIN platforms pl ON p.platform_id = pl.id
-                 WHERE p.user_id = ? AND pl.name = 'lichess.org'`,
-                [user.id]
+            // Fetch accounts for this user specifically for Lichess
+            const [accounts] = await conn.execute(
+                `SELECT a.id, a.accountname, a.last_scan, pl.id as platform_id 
+                 FROM accounts a 
+                 JOIN platforms pl ON a.platform_id = pl.id
+                 WHERE a.player_id = ? AND pl.name = 'lichess.org'`,
+                [player.id]
             );
 
-            for (const player of players) {
-                console.log(`  Target Account: ${player.accountname}`);
+            for (const account of accounts) {
+                console.log(`  Target Account: ${account.accountname}`);
 
                 let params = {
                     max: 10,
@@ -67,12 +67,12 @@ async function downloadUserGames() {
                 };
 
                 // Resume from last scan if available
-                if (player.last_scan) { 
+                if (account.last_scan) { 
                     params.since = new Date(player.last_scan).getTime() + 1; 
                 }
 
                 try {
-                    const response = await axios.get(`${process.env.LI_USER_API}/${player.accountname}`, {
+                    const response = await axios.get(`${process.env.LI_USER_API}/${account.accountname}`, {
                         params: params,
                         headers: { 'Accept': 'application/x-ndjson' },
                         responseType: 'text'
@@ -91,8 +91,8 @@ async function downloadUserGames() {
 
                         // Check for existing game to avoid duplicates
                         const [exists] = await conn.query(
-                            "SELECT id FROM player_games WHERE player_id = ? AND game_id = ?",
-                            [player.id, game.id]
+                            "SELECT id FROM player_games WHERE account_id = ? AND game_id = ?",
+                            [account.id, game.id]
                         );
                         if (exists.length > 0) continue;
 
@@ -117,11 +117,11 @@ async function downloadUserGames() {
                             }
 
                             const [gameResult] = await conn.query(
-                            `INSERT INTO player_games (player_id, platform_id, game_id, date, side, white, black, white_elo, black_elo, time_control, termination, result, points)
+                            `INSERT INTO player_games (account_id, platform_id, game_id, date, side, white, black, white_elo, black_elo, time_control, termination, result, points)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                             [
-                              player.id, 
-                              player.platform_id, 
+                              account.id, 
+                              account.platform_id, 
                               game.id, 
                               gameDate, 
                               playerside,
@@ -180,11 +180,11 @@ async function downloadUserGames() {
                     // Update player state after processing the batch
                     if (lastGameTimestamp) {
                         const lastScanDate = new Date(lastGameTimestamp);
-                        await conn.query("UPDATE players SET last_scan = ? WHERE id = ?", [lastScanDate, player.id]);
+                        await conn.query("UPDATE accounts SET last_scan = ? WHERE id = ?", [lastScanDate, account.id]);
                     }
 
                 } catch (apiErr) {
-                    console.log(`  API Error for ${player.accountname}:`, apiErr.message);
+                    console.log(`  API Error for ${account.accountname}:`, apiErr.message);
                 }
             }
         }

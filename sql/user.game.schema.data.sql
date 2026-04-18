@@ -17,21 +17,6 @@
 /*M!100616 SET @OLD_NOTE_VERBOSITY=@@NOTE_VERBOSITY, NOTE_VERBOSITY=0 */;
 
 --
--- Table structure for table `users`
---
-
-DROP TABLE IF EXISTS `users`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `users` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(20) NOT NULL,
-  `lastname` varchar(20) NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `players`
 --
 
@@ -40,15 +25,30 @@ DROP TABLE IF EXISTS `players`;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `players` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) NOT NULL,
+  `name` varchar(20) NOT NULL,
+  `lastname` varchar(20) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `accounts`
+--
+
+DROP TABLE IF EXISTS `accounts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `accounts` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `player_id` int(11) NOT NULL,
   `platform_id` int(11) NOT NULL,
   `accountname` varchar(20) NOT NULL,
   `last_scan` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `fk_user` (`user_id`),
+  KEY `fk_user` (`player_id`),
   KEY `fk_platform` (`platform_id`),
   CONSTRAINT `fk_platform` FOREIGN KEY (`platform_id`) REFERENCES `platforms` (`id`),
-  CONSTRAINT `fk_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+  CONSTRAINT `fk_player` FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -61,7 +61,7 @@ DROP TABLE IF EXISTS `player_games`;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `player_games` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `player_id` int(11) NOT NULL,
+  `account_id` int(11) NOT NULL,
   `platform_id` int(11) NOT NULL,
   `game_id` varchar(255) NOT NULL,
   `book_id` int(11) DEFAULT NULL,
@@ -76,12 +76,12 @@ CREATE TABLE `player_games` (
   `result` varchar(10) DEFAULT NULL,
   `time_control` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `fk_player` (`player_id`),
+  KEY `fk_account` (`account_id`),
   KEY `fk_platform` (`platform_id`),
   KEY `fk_book` (`book_id`),
+  CONSTRAINT `fk_player_games_account` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`),
   CONSTRAINT `fk_player_games_book` FOREIGN KEY (`book_id`) REFERENCES `opening_book` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `fk_player_games_platform` FOREIGN KEY (`platform_id`) REFERENCES `platforms` (`id`),
-  CONSTRAINT `fk_player_games_player` FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
+  CONSTRAINT `fk_player_games_platform` FOREIGN KEY (`platform_id`) REFERENCES `platforms` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -137,4 +137,4 @@ CREATE TABLE `evaluation` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-04-16  9:40:28
+-- Dump completed on 2026-04-18 14:18:02

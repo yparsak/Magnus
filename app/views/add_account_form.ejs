@@ -4,7 +4,7 @@
 <body>
   <header class="navbar">
   <div class="left-group">
-    <%- include('partials/logo') %> 
+    <%- include('partials/logo') %>
   </div>
   </header>
    <div class="formcontainer">
@@ -12,19 +12,20 @@
       <%- include('partials/error') %>
       <div class="divider"></div>
       <span class="active"><h3>Add Account</h3></span>
-      <form action="/add_account" method="POST">
-        <label>User Name</label>
-        <input type="text" id="userName" name="userName" placeholder="">
+      <form action="/account/add" method="POST">
+        <input type="hidden" id=="playerId" name="playerId" value="<%= playerId %>">
+        <label>Account Name</label>
+        <input type="text" id="accountName" name="accountName" placeholder="">
         <label>Platform</label>
         <select id="platform" name="platform" required>
           <option value="" disabled selected>--select platform--</option>
-          <option value="lichess">lichess.org</option>
-          <option value="chess_com">chess.com</option>
+          <option value="lichess.org">lichess.org</option>
+          <option value="chess.com">chess.com</option>
         </select>
         <div class="divider"></div>
         <div class="button-group">
-          <button type="submit" name="action" value="cancel" class="cancel">Cancel</button>
-          <button type="submit" name="action" value="submit" class="submit">Add Account</button>
+          <button type="submit" name="action" value="cancel" class="cancel" formnovalidate>Cancel</button>
+          <button type="submit" name="action" value="submit" class="submit" onclick="this.disabled=true; this.form.submit();">Add Account</button>
         </div>
       </form>
     </div>
