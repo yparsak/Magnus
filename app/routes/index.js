@@ -14,8 +14,14 @@
 
   router.get('/', async (req, res) => {
     try {
-    const [rows] = await pool.query('SELECT name, lastname FROM users LIMIT 10');
+    const [rows] = await pool.query('SELECT id, name, lastname FROM users LIMIT 10');
+
+    if (rows.length) {
       res.render('index', { userList: rows });
+    } else {
+      res.redirect('/add_user');
+    }  
+
     } catch (err) {
       console.error(err);
       res.status(500).send("Database Error");

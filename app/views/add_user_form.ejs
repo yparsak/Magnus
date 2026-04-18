@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <%- include('partials/head') %>
+<body>
+  <header class="navbar">
+  <div class="left-group">
+    <%- include('partials/logo') %>
+  </div>
+  </header>
+   <div class="formcontainer">
+    <div class="card">
+      <%- include('partials/error') %>
+      <div class="divider"></div>
+      <span class="active"><h3>Add Player</h3></span>
+      <form action="/add_user" method="POST">
+        <label>First Name</label>
+        <input type="text" id="firstName" name="firstName" placeholder="">
+        <label>Last Name</label>
+        <input type="text" id="lastName" name="lastName" placeholder="">
+        <div class="divider"></div>
+        <div class="button-group">
+          <button type="submit" name="action" value="cancel" class="cancel">Cancel</button>
+          <button type="submit" name="action" value="submit" class="submit">Add Player</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

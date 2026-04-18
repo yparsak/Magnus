@@ -4,7 +4,10 @@
   const path = require('path');
   const app = express();
 
-  const indexRouter = require('./routes/index');
+  const indexRouter   = require('./routes/index');
+  const addUserRouter = require('./routes/addUser');
+  const userRouter    = require('./routes/user');
+
 
   const getLocalIP = () => {
     const interfaces = os.networkInterfaces();
@@ -34,6 +37,8 @@
 
   // -- Routes --
   app.use('/', indexRouter);
+  app.use('/add_user', addUserRouter);
+  app.use('/user', userRouter);
 
   app.listen(PORT, HOST, () => {
     console.log(`Local Access: http://localhost:${PORT}`);

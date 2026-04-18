@@ -1,0 +1,259 @@
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+  }
+
+  body {
+    background: #f5f5f5;
+    color: #333;
+  }
+
+  .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background: #e9e6e3;
+  }
+
+  .left-group {
+    display: flex;
+    align-items: center;
+    gap: 30px; /* space between logo and menu */
+  }
+
+  .logo {
+    font-size: 32px;
+    font-weight: 300;
+    color: #555;
+  }
+
+  a {
+  text-decoration: none;
+  color: inherit;
+  }
+
+  .menu {
+    list-style: none;
+    display: flex;
+    gap: 25px;
+    font-size: 18px;
+    z-index: 1000;
+    
+  }
+
+  .menu li {
+    position: relative;
+    cursor: pointer;
+    padding: 10px 15px;
+    color: #444;
+    z-index: 1000;
+  }
+
+  .dropdown:hover {
+    border-left: 3px solid #2c73b8;
+    background: #f0f0f0;
+  }
+
+  .dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: -3px; /* shift left to align blue line */
+    width: 260px;
+    background: #f7f7f7;
+    border-left: 3px solid #2c73b8;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    list-style: none;
+    padding: 5px 0;
+    z-index: 1000;
+  }
+
+  .dropdown::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: -3px;
+    width: calc(100% + 3px);
+    height: 10px;
+  }
+
+  .dropdown-content li {
+    padding: 15px 20px;
+    font-size: 20px;
+    color: #444;
+    z-index: 1000;
+  }
+
+  .dropdown-content li:hover {
+    background: #eaeaea;
+  }
+
+  .dropdown:hover .dropdown-content {
+    display: block;
+  }
+
+  .settings {
+    font-size: 20px;
+    cursor: pointer;
+  }
+
+.container {
+    display: grid;
+    grid-template-columns: 1fr minmax(400px, 2.5fr) minmax(200px, 1fr);
+    gap: 12px;
+    padding: 12px;
+    max-width: 1600px;
+    margin: 0 auto;
+    height: calc(100vh - 74px);
+    position: relative; /* Context for children */
+}
+
+.pane {
+    background-color: #fff;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 2px solid #d0cfce;
+}
+
+.pane-middle {
+    background-color: #ffffff;
+}
+
+.pane-left {
+    background-color: #ffffff;
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+  .formcontainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: calc(100vh - 70px);
+  }
+
+  .card {
+    width: 400px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+  }
+
+  label {
+    margin: 10px 0 5px;
+    font-size: 14px;
+  }
+
+  input[type="text"],
+  input[type="password"] {
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #eee;
+    outline: none;
+  }
+
+  .options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 15px 0;
+    font-size: 14px;
+  }
+
+  .options a {
+    text-decoration: none;
+    color: #3498db;
+  }
+
+  button {
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: #2c73b8;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #245f98;
+  }
+
+  .divider {
+    text-align: center;
+    margin: 20px 0;
+    color: #aaa;
+  }
+
+  .button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  button.submit {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: #2c73b8;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  }
+  button.submit:hover {
+  background: #245f98;
+  }
+
+  button.cancel {
+  flex: 1;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  background: #f2f2f2;
+  color: #333;
+  font-size: 16px;
+  cursor: pointer;
+  }
+
+  button.add {
+    flex: 1;
+    padding: 0px;
+    border-radius: 10px;
+    background: #2c73b8;
+    color: white;
+    font-size: 14px;
+    width: 80px; 
+  }
+
+  button.cancel:hover {
+  background: #e6e6e6;
+  }
+
+  table {
+   width: 100%;
+   border: none;
+   flex: 1;
+  padding: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  }
+
+  tr {
+  height: 25px;
+  }
