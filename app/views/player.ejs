@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <%- include('partials/head') %>
+<body>
+
+  <header class="navbar">
+    <div class="left-group">
+      <%- include('partials/logo') %>
+      <%- include('partials/nav') %>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="pane pane-left">
+      <table>
+        <tbody>
+          <th><%= player.name %> <%= player.lastname %></th>
+           <tr>
+             <td>
+               <form action="/account/add" method="GET">
+                 <button type="submit" name="playerId" value="<%= player.id %>"class="add">Add Account</button>
+               </form>
+             </td>
+             <td><!-- --></td>
+           </tr>
+        </tbody>
+      </table>
+    </aside>
+
+    <section class="pane pane-middle">
+      <div>Main Content Area</div>
+    </section>
+
+    <aside class="pane pane-right">
+      <div class="">Right Sidebar</div>
+    </aside>
+  </div>
+
+</body>
+</html>
