@@ -174,12 +174,6 @@
   fi
 
   # -- Setting User Full Name
-  if [[ -z "$USER_NAME" ]]; then
-    read -p "Please enter your first name: " USER_NAME
-  fi
-  if [[ -z $USER_LASTNAME ]];then
-    read -p "Please enter your last name: " USER_LASTNAME
-  fi
   if [[ -z $USER_EMAIL ]]; then
     read -p "Please enter your email: " USER_EMAIL
   fi
@@ -207,8 +201,6 @@
   echo "DB_PASS=$DB_PASS"                                    >> "$ENV_FILE"
   echo "DB_NAME=$APP_NAME"                                   >> "$ENV_FILE"
 
-  echo "USER_NAME=$USER_NAME"                                >> "$ENV_FILE"
-  echo "USER_LASTNAME=$USER_LASTNAME"                        >> "$ENV_FILE"
   echo "USER_EMAIL=$USER_EMAIL"                              >> "$ENV_FILE"
  
   echo "LI_USER_API=https://lichess.org/api/games/user"      >> "$ENV_FILE"
