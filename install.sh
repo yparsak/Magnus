@@ -57,7 +57,7 @@
   USRLOCALBIN="/usr/local/bin/"
 
   # -- Required Packages
-  REQUIRED_PKGS=("build-essential" "nodejs" "npm" "curl" "git" "openssh-server" "mariadb-server")
+  REQUIRED_PKGS=("build-essential" "nodejs" "npm" "curl" "mariadb-server")
   MISSING_PKGS=()
 
   # -- detect missing packages
@@ -244,106 +244,14 @@
   cd $APP_PATH/scripts && make
   cd $APP_PATH/app && make
 
-  # -- Install Stockfish
-  echo "Checking $ENGINE_NAME latest version"
-  LATEST_TAG=$(curl -s $ENGINE_API_URL | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-  VERSION=$(echo "$LATEST_TAG" | grep -o -E '[0-9]+' | head -1)
-  if [[ -z ${VERSION} ]]; then
-    echo "Err: Unable to determine latest tag version for $ENGINE_NAME"
-    exit 1
-  fi
-
-  TARGET_DIR="$ENGINE_SRC_PATH/$VERSION"
-  if [ -d "$TARGET_DIR" ]; then
-    echo "[>] $ENGINE_NAME version ${VERSION} is already present."
-  else
-    mkdir -p "$TARGET_DIR"
-    chown "$SUDO_USER:$SUDO_USER" "$TARGET_DIR"
-
-    if [ -z "$TARGET_DIR" ]; then
-      echo "[X] $TARGET_DIR is not set."
-      exit 1
-    fi
-
-    # -- download engine
-    git clone --depth 1 --branch "$LATEST_TAG" "$ENGINE_REPO_URL" "$TARGET_DIR"
-
-    cd "$TARGET_DIR/src" || { echo "[X] Failed to enter directory $TARGET_DIR/src"; exit 1; } 
-
-    make -j profile-build ARCH=native
-
-    if [ $? -ne 0 ]; then
-      echo "[X] $ENGINE_NAME $VERSION installation failed during the build process."
-      exit 1
-    fi
-
-    chown "$SUDO_USER:$SUDO_USER" ${ENGINE_NAME,,}
-    chmod +x ${ENGINE_NAME,,}
-    sudo mv ${ENGINE_NAME,,} ${USERLOCALBIN}
-
-    cd "$ENGINE_SRC_PATH"
-    SYMLINK="$ENGINE_SRC_PATH/current_version"
-    rm -f "$SYMLINK"
-
-    ln -s "$TARGET_DIR" "$SYMLINK"
-    chown "$SUDO_USER:$SUDO_USER" "$SYMLINK"
-
-    echo "[>] $ENGINE_NAME $VERSION installation complete" 
-    
-  fi 
-
   sudo chown -R "$SUDO_USER:$SUDO_USER" ${APP_PATH}
-  sudo chown -R "$SUDO_USER:$SUDO_USER" ${ENGINE_SRC_PATH}  
 
-  # -- Enabling SSH
-  SERVICE="ssh"
-  if systemctl is-active --quiet $SERVICE; then
-    echo "[>] SSH is already running."
-  else
-    echo "[X] SSH is stopped. Starting it now..."
-    systemctl start $SERVICE
-  fi
-
-  if systemctl is-enabled --quiet $SERVICE; then
-    echo "[>] SSH is already enabled to start on boot."
-  else
-    echo "[X] SSH is disabled. Enabling it now..."
-    systemctl enable $SERVICE
-  fi
-
-  # -- insert User in DB
-  # QUERY="INSERT INTO players (name, lastname) 
-  #       SELECT '${USER_NAME}', '${USER_LASTNAME}' 
-  #       FROM DUAL 
-  #       WHERE NOT EXISTS (
-  #         SELECT 1 FROM players 
-  #          WHERE name = '${USER_NAME}' AND lastname = '${USER_LASTNAME}'
-  # );"
-
-  # mariadb -u "$DB_USER" -p"$DB_PASS" "$APP_NAME" -e "$QUERY"
-  #if [ $? -eq 0 ]; then
-  #  echo "Process complete: Database checked and updated if necessary."
-  #else
-  #  echo "Error: Failed to insert player. Please insert manually."
-  #fi
-
+  sudo ${APP_PATH}/scripts/install_stockfish.sh
 
   # -- add cronjobs
-  PROGRAM_NAME='download.lichessorg.js'
+  PROGRAM_NAME='download.pgns.js'
   # 1am 2am every day
   CRON_SCHEDULE="0 1,2 * * *"
-  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> /tmp/Magnus.process.log"
-  if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
-    echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
-  else
-    (sudo -u "$SUDO_USER" crontab -l 2>/dev/null; echo "$CRON_JOB") | sudo -u "$SUDO_USER" crontab -
-    echo "Success: The task ${PROGRAM_NAME} added to ${SUDO_USER}'s crontab."
-  fi
-
-  # --
-  PROGRAM_NAME='download.chesscom.js'
-  # 3am 4am  every day
-  CRON_SCHEDULE="0 3,4 * * *"
   CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> /tmp/Magnus.process.log"
   if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
     echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
