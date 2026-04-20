@@ -159,6 +159,9 @@
   }
 
 async function download_chesscom(conn, platform_id, account) {
+
+  const STANDARD_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
   try {
     const archiveList = await axios.get(
       `${process.env.CHESSCOM_USER_API}/${account.accountname}/games/archives`,
@@ -207,7 +210,15 @@ async function download_chesscom(conn, platform_id, account) {
     const games = gamesRes.data.games || [];
     
     for (const gameData of games) {
-      // 1. Rename this to externalGameId to avoid collision
+
+      //Filter out non-standard rules (Chess960, King of the Hill, etc.)
+      if (gameData.rules && gameData.rules !== "chess") {
+        console.log(`Skipping game ${gameData.uuid}: Non-standard rules (${gameData.rules})`);
+        continue;
+      }
+
+
+      //console.log(`Game uuid: ${gameData.uuid}`);
       const externalGameId = gameData.uuid || gameData.url;
 
       const [exists] = await conn.query(
@@ -221,6 +232,15 @@ async function download_chesscom(conn, platform_id, account) {
 
       try {
         const pgn = gameData.pgn || "";
+        const fenTag = getPgnTag(pgn, "FEN");
+
+        // 2. Filter out custom setups or variants
+        // If the game has a FEN tag and it doesn't match the standard start, skip it.
+        if (fenTag !== "Unknown" && fenTag !== STANDARD_FEN) {
+          console.log(`Skipping game ${gameData.uuid}: Custom setup/Variation detected.`);
+          continue;
+        }
+
         const white = getPgnTag(pgn, "White");
         const black = getPgnTag(pgn, "Black");
         const playerside = (white.toLowerCase() === account.accountname.toLowerCase()) ? 1 : 0;
@@ -250,27 +270,38 @@ async function download_chesscom(conn, platform_id, account) {
 
         // 2. This is the internal DB ID
         const internalId = gameResult.insertId;
-        
+
         const chess = new Chess();
-        const moves = chess.loadPgn(pgn) ? chess.history({ verbose: true }) : [];
+        try {
+          chess.loadPgn(pgn);
+        } catch (e) {
+          console.error(`Regex/Parsing error for game ${externalGameId}: ${e.message}`);
+        }
+        const moves = chess.history({ verbose: true });
+
+        // Check if moves exist instead of checking the return value of loadPgn
+        if (moves.length === 0 && pgn.trim().length > 0) {
+          console.error(`Failed to parse any moves for game ${externalGameId}.`);
+        } 
 
         const moveRecords = [];
         const tempChess = new Chess();
-        let moveside = 1;
+        let moveside = 1; 
 
         for (const m of moves) {
           const moveAttempt = tempChess.move(m.san);
           if (moveAttempt) {
-            moveRecords.push([
-                internalId, 
-                tempChess.fen(), 
-                m.san, 
-                `${m.from}${m.to}${m.promotion || ''}`, 
-                moveside
+              moveRecords.push([
+              internalId, 
+              tempChess.fen(), 
+              m.san, 
+              `${m.from}${m.to}${m.promotion || ''}`, 
+              moveside
             ]);
-            moveside = moveside === 1 ? 0 : 1;
+            moveside = (moveside === 1) ? 0 : 1;
           }
         }
+        //console.log(`Number of moves: ${moveRecords.length}`);
 
         if (moveRecords.length > 0) {
           await conn.query(
@@ -317,7 +348,7 @@ async function download_chesscom(conn, platform_id, account) {
 
         switch(account.platform) {
           case "lichess.org":
-            //await download_lichess(conn, account.platform_id, account);
+            await download_lichess(conn, account.platform_id, account);
             break;
           case "chess.com":
             await download_chesscom(conn, account.platform_id, account);
