@@ -67,14 +67,14 @@ CREATE TABLE `player_games` (
   `book_id` int(11) DEFAULT NULL,
   `date` timestamp NOT NULL,
   `side` tinyint(1) NOT NULL DEFAULT 1,
-  `white` varchar(20) DEFAULT NULL,
-  `black` varchar(20) DEFAULT NULL,
   `white_elo` smallint(6) DEFAULT NULL,
   `black_elo` smallint(6) DEFAULT NULL,
   `termination` varchar(255) DEFAULT NULL,
   `points` tinyint(4) DEFAULT NULL,
   `result` varchar(10) DEFAULT NULL,
   `time_control` varchar(50) DEFAULT NULL,
+  `black` varchar(50) DEFAULT NULL,
+  `white` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_account` (`account_id`),
   KEY `fk_platform` (`platform_id`),
@@ -137,4 +137,4 @@ CREATE TABLE `evaluation` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-04-18 14:18:02
+-- Dump completed on 2026-04-19 22:03:50
