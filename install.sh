@@ -238,7 +238,7 @@
 
   sudo chown -R "$SUDO_USER:$SUDO_USER" ${APP_PATH}
 
-  sudo ${APP_PATH}/scripts/install_stockfish.sh
+  ${APP_PATH}/scripts/install_stockfish.sh
 
   # -- add cronjobs
   PROGRAM_NAME='download.pgns.js'
