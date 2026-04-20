@@ -21,23 +21,31 @@
             <% }); %>
           <% } %>
            <tr>
-             <td colspan="2">
+             <td>
+               <form action="/" method="GET">
+                 <button type="submit" name="cancel" class="add">Go Back</button>
+               </form>
+               </td><td>
                <form action="/account/add" method="GET">
                  <button type="submit" name="playerId" value="<%= player.id %>"class="add">Add Account</button>
                </form>
              </td>
-             <td><!-- --></td>
            </tr>
         </tbody>
       </table>
     </aside>
 
     <section class="pane pane-middle">
-      <div>Main Content Area</div>
+      <% if (accounts.length === 0) {%>
+       <div>No chess acounts found for <%= player.name %> <%= player.lastname %>.
+            Please add chess account.</div> 
+      <% } else { %>
+        <div></div>
+      <% } %>
     </section>
 
     <aside class="pane pane-right">
-      <div class="">Right Sidebar</div>
+      <div class=""></div>
     </aside>
   </div>
 

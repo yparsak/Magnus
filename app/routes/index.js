@@ -14,10 +14,21 @@
 
   router.get('/', async (req, res) => {
     try {
-    const [rows] = await pool.query('SELECT id, name, lastname FROM players LIMIT 10');
+    const [players] = await pool.query('SELECT id, name, lastname FROM players');
 
-    if (rows.length) {
-      res.render('index', { playerList: rows });
+    if (players.length > 0) {
+
+      const [accounts] = await pool.query('SELECT id FROM accounts');
+
+      const [games] = await pool.query(
+         'SELECT pg.white, pg.black, pg.date, pg.result, pg.time_control, ob.eco, ob.name FROM player_games pg LEFT JOIN opening_book ob on pg.book_id = ob.id ORDER by pg.id DESC' 
+      );
+        
+      res.render('index', { playerList: players,
+                            accountList: accounts,
+                            gameList: games
+      });
+
     } else {
       res.redirect('/player/add');
     }  

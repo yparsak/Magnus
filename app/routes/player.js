@@ -20,19 +20,19 @@
         return res.status(400).send("player ID is required");
     }
     try {
-        const [rows] = await pool.query(
+        const [players] = await pool.query(
             `SELECT id, name, lastname FROM players WHERE id = ?`,
             [playerId]
         );
-        if (rows.length > 0) {
+        if (players.length > 0) {
 
 
           const [accounts] = await pool.query(
             `select a.id, a.accountname, p.name from accounts a left join platforms p on a.platform_id = p.id where a.player_id = ?`,
-             [rows[0].id] 
+             [players[0].id] 
           );
 
-          res.render('player', { player: rows[0], accounts: accounts });
+          res.render('player', { player: players[0], accounts: accounts });
 
         } else {
             res.redirect('/');

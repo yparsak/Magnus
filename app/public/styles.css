@@ -134,6 +134,9 @@
 
 .pane-middle {
     background-color: #ffffff;
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
 }
 
 .pane-left {
@@ -198,6 +201,7 @@
     color: white;
     font-size: 16px;
     cursor: pointer;
+    max-width: 150px;
   }
 
   button:hover {
@@ -247,8 +251,7 @@
     border-radius: 10px;
     background: #2c73b8;
     color: white;
-    font-size: 14px;
-    width: 80px; 
+    font-size: 16px;
   }
 
   button.cancel:hover {
@@ -266,3 +269,4 @@
   tr {
   height: 25px;
   }
+

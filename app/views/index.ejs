@@ -28,9 +28,9 @@
            <% } %>
            <tr>
              <td>
-      <form action="/player/add" method="GET">
-        <button type="submit" name="action" class="add">Add</button>
-      </form>
+               <form action="/player/add" method="GET">
+                 <button type="submit" name="action" class="add">Add</button>
+               </form>
              </td>
              <td><!-- --></td>
            </tr>
@@ -39,11 +39,43 @@
     </aside>
 
     <section class="pane pane-middle">
-      <div>Main Content Area</div>
+      <% if (accountList.length === 0 ) { %>
+        <div>No chess acounts found. Please click on players, and add chess account.</div>
+      <% } else { %>
+        <div>
+          <% if (gameList.length === 0) { %>
+            No games found in the database. If cronjobs are set, they should be downloaded after midnight. 
+          <% } else {%>
+           <table>
+             <thead>
+               <tr>
+                 <th>White</th>
+                 <th>Black</th>
+                 <th>Result</th>
+                 <th>Time Control</th>
+                 <th>ECO</th>
+                 <th>Opening</th>
+               </tr>
+             </thead>
+             <tbody>
+               <% gameList.forEach(game => { %>
+                 <tr>
+                   <td><%= game.white %></td>
+                   <td><%= game.black %></td>
+                   <td><%= game.result %></td>
+                   <td><%= game.time_control %></td>
+                   <td><%= game.eco %></td>
+                   <td><%= game.name %></td>
+                 </tr>
+               <% }) %>
+             </tbody>
+           </table>
+          <% } %>
+        </div>
+      <% } %>
     </section>
-
     <aside class="pane pane-right">
-      <div class="">Right Sidebar</div>
+      <div class=""></div>
     </aside>
   </div>
 
