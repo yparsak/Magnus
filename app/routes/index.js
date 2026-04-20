@@ -21,12 +21,34 @@
       const [accounts] = await pool.query('SELECT id FROM accounts');
 
       const [games] = await pool.query(
-         'SELECT pg.white, pg.black, pg.date, pg.result, pg.time_control, ob.eco, ob.name FROM player_games pg LEFT JOIN opening_book ob on pg.book_id = ob.id ORDER by pg.id DESC' 
+         'SELECT pg.white, pg.black, pg.date, pg.result, pg.time_control, ob.eco, ob.name FROM player_games pg LEFT JOIN opening_book ob on pg.book_id = ob.id ORDER by pg.id DESC LIMIT 20' 
       );
-        
+
+
+      const formattedGames = games.map(game => {
+        const d = new Date(game.date);
+        const formatter = new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+        });
+
+        const parts = formatter.formatToParts(d);
+        const p = Object.fromEntries(parts.map(p => [p.type, p.value]));
+
+        // Construct exactly: MMM/DD/YYYY HH:MM:SS
+        const finalDate = `${p.month}/${p.day}/${p.year} ${p.hour}:${p.minute}:${p.second}`;
+
+        return { ...game, date: finalDate };
+      });
+
       res.render('index', { playerList: players,
                             accountList: accounts,
-                            gameList: games
+                            gameList: formattedGames
       });
 
     } else {
