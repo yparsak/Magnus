@@ -14,7 +14,9 @@
     <aside class="pane pane-left">
       <table>
         <tbody>
-          <th colspan="2"><%= player.name %> <%= player.lastname %></th>
+          <tr>
+            <td colspan="2"><%= player.name %> <%= player.lastname %></th>
+          </tr>
           <% if (accounts.length > 0) {%>
             <% accounts.forEach(account => { %>
               <tr><td><%= account.name %></td><td><%= account.accountname %> </td></tr>

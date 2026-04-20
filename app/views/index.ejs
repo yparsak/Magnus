@@ -14,7 +14,6 @@
     <aside class="pane pane-left">
       <table>
         <tbody>
-          <th>Players</th>
            <% if (playerList.length > 0) { %>
              <% playerList.forEach(player => { %>
                 <tr>
@@ -32,7 +31,6 @@
                  <button type="submit" name="action" class="add">Add</button>
                </form>
              </td>
-             <td><!-- --></td>
            </tr>
         </tbody>
       </table>
@@ -53,7 +51,6 @@
                  <th>Black</th>
                  <th>Result</th>
                  <th>Time Control</th>
-                 <th>ECO</th>
                  <th>Opening</th>
                </tr>
              </thead>
@@ -64,7 +61,6 @@
                    <td><%= game.black %></td>
                    <td><%= game.result %></td>
                    <td><%= game.time_control %></td>
-                   <td><%= game.eco %></td>
                    <td><%= game.name %></td>
                  </tr>
                <% }) %>

@@ -78,7 +78,6 @@
           const termination = getPgnTag(pgnContent, "Termination");
           const playerside = (white === account.accountname) ? 1 : 0;          
           const resultTag = getPgnTag(pgnContent, "Result");
-          const eco = getPgnTag(pgnContent, "ECO");
 
           let points = 0;
           if (resultTag === "1/2-1/2") {
@@ -89,19 +88,8 @@
             points = (playerside === 0) ? 2 : 0;
           }
 
-          let book_id = null;
-          if (eco) {
-            const [booklist] = await conn.query(
-              "SELECT id FROM opening_book WHERE eco = ?",
-              [eco]
-            ); 
-            if (booklist.length > 0) {
-              book_id = booklist[0].id;
-            }
-          }
-
           const [pg_result] = await conn.query(
-`INSERT INTO player_games (account_id, platform_id, game_id, date, side, white, black, white_elo, black_elo, time_control, termination, result, points, book_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+`INSERT INTO player_games (account_id, platform_id, game_id, date, side, white, black, white_elo, black_elo, time_control, termination, result, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               account.id,
               account.platform_id,
@@ -115,8 +103,7 @@
               time_control,
               termination,
               resultTag,
-              points,
-              book_id 
+              points
             ]);
 
           const gameId = pg_result.insertId;
@@ -185,7 +172,7 @@ async function download_chesscom(conn, platform_id, account) {
     let ndx = 0;
 
     if (!account.last_scan) {
-      console.log('Scan Date is null');
+      //console.log('Scan Date is null');
       downloadURL = archives[0];
     } else {
       const last_scan = new Date(account.last_scan);
