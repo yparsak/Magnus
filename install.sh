@@ -253,7 +253,7 @@
   fi
 
   # --
-  PROGRAM_NAME='set.openingbook.js'
+  PROGRAM_NAME='updateGameOpenings.js'
   # 5am every day
   CRON_SCHEDULE="0 5 * * *"
   CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> /tmp/Magnus.process.log"
