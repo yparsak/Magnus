@@ -243,8 +243,8 @@
 
   # -- add cronjobs
   PROGRAM_NAME='download.pgns.js'
-  # 1am 2am every day
-  CRON_SCHEDULE="0 1,3,5,6 * * *"
+  # Every hour between 12am-6am
+  CRON_SCHEDULE="0 0-6 * * *"
   CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> ${LOGFILE}"
   if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
     echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
@@ -255,8 +255,8 @@
 
   # --
   PROGRAM_NAME='updateGameOpenings.js'
-  # 5am every day
-  CRON_SCHEDULE="0 7 * * *"
+  # 7am every day
+  CRON_SCHEDULE="30 6 * * *"
   CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> ${LOGFILE}"
   if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
     echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
@@ -267,8 +267,8 @@
 
   # --
   PROGRAM_NAME='updateGameEvaluation.js'
-  # every hour, at *:00
-  CRON_SCHEDULE="0 8,9,10,11,12 * * *"
+  # every hour between 7am - 11pm
+  CRON_SCHEDULE="0 7-23 * * *"
   CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> ${LOGFILE}"
   if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
     echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
