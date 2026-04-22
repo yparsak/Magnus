@@ -55,6 +55,7 @@
   ENV_FILE="$APP_PATH/scripts/.env"
 
   USRLOCALBIN="/usr/local/bin/"
+  LOGFILE="Magnus.process.log"
 
   # -- Required Packages
   REQUIRED_PKGS=("build-essential" "nodejs" "npm" "curl" "mariadb-server")
@@ -244,7 +245,7 @@
   PROGRAM_NAME='download.pgns.js'
   # 1am 2am every day
   CRON_SCHEDULE="0 1,2 * * *"
-  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> /tmp/Magnus.process.log"
+  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> ${LOGFILE}"
   if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
     echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
   else
@@ -256,7 +257,7 @@
   PROGRAM_NAME='updateGameOpenings.js'
   # 5am every day
   CRON_SCHEDULE="0 5 * * *"
-  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> /tmp/Magnus.process.log"
+  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> ${LOGFILE}"
   if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
     echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
   else
@@ -265,10 +266,10 @@
   fi
 
   # --
-  PROGRAM_NAME='set.move.eval.js'
+  PROGRAM_NAME='EvaluatePositions.js'
   # every hour, at *:00
   CRON_SCHEDULE="0 * * * *"
-  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> /tmp/Magnus.process.log"
+  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> ${LOGFILE}"
   if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
     echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
   else
@@ -277,22 +278,10 @@
   fi
 
   # --
-  PROGRAM_NAME='set.evaluation.js'
-  # every hour at *:30
-  CRON_SCHEDULE="30 * * * *"
-  CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> /tmp/Magnus.process.log"
-  if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
-    echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
-  else
-    (sudo -u "$SUDO_USER" crontab -l 2>/dev/null; echo "$CRON_JOB") | sudo -u "$SUDO_USER" crontab -
-    echo "Success: The task ${PROGRAM_NAME} added to ${SUDO_USER}'s crontab."
-  fi
-
-  # --
-  PROGRAM_NAME='check.engine.updates.sh'
+  PROGRAM_NAME='install_stockfish.sh'
   # 5am, 1st day of every month
   CRON_SCHEDULE="0 5 1 * *"
-  CRON_JOB="$CRON_SCHEDULE sudo ${APP_PATH}/scripts/${PROGRAM_NAME} >> /tmp/Magnus.process.log"
+  CRON_JOB="$CRON_SCHEDULE sudo ${APP_PATH}/scripts/${PROGRAM_NAME} >> ${LOGFILE}"
   if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
     echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."
   else
