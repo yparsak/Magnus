@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <%- include('partials/head') %>
+<body>
+  <header class="navbar">
+    <div class="left-group">
+      <%- include('partials/logo') %> 
+      <%- include('partials/nav') %>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="pane pane-left">
+      <div id="evaluation">Eval:</div>
+      <canvas id="graph" width="280" height="100"></canvas>
+    </aside>
+
+    <section class="pane pane-middle">
+      <div id="Black"><strong><%= info[0].black %> </strong> 
+          (<%= info[0].black_elo %>)
+      </div>
+      <div id="myBoard"></div>
+      <div id="White"><strong> <%= info[0].white %></strong>
+          (<%= info[0].white_elo %>) 
+      </div>
+      <div><%= info[0].eco %> <%= info[0].name %></div>
+      <div><%= info[0].time_control %> <%= info[0].result %> <%= info[0].termination %></div>
+      <div id="fen-text">FEN: Loading...</div>
+    </section>
+
+    <aside class="pane pane-right">
+      <div><h3>Moves</h3></div>
+      <hr style="border: 0.5px solid #383531;">
+      <div id="move-list" class="move-history">
+        <div class="move-item active" id="move-0" onclick="goToMove(-1)">Start</div>
+        <% moves.forEach((move, index) => { %>
+          <div class="move-item" id="move-<%= index + 1 %>" onclick="goToMove(<%= index %>)">
+            <%= index + 1 %>. <%= move.short_notation %>
+          </div>
+        <% }) %>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+<script>
+  (function() {
+    const canvas = document.getElementById('graph');
+    const ctx = canvas.getContext('2d');
+    const moves = <%- JSON.stringify(moves) %>;
+
+    // Filter out moves where all evaluations are zero (check/mate) or null
+    const validData = moves.filter(m => {
+      // Convert potential strings to numbers
+      const mat = parseFloat(m.material_eval);
+      const pos = parseFloat(m.positional_eval);
+      const fin = parseFloat(m.final_eval);
+
+      // 1. Check if they are valid numbers (not NULL or undefined)
+      const hasData = !isNaN(mat) && !isNaN(pos) && !isNaN(fin);
+  
+      // 2. Check if they are all zero. 
+      // This catches 0, "0", "0.00", and -0.00
+      const isNotAllZero = !(mat === 0 && pos === 0 && fin === 0);
+
+      return hasData && isNotAllZero;
+    });
+
+
+    // 1. Handle Empty Data State
+    if (validData.length === 0) {
+      ctx.font = "14px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("No evaluation data found", canvas.width / 2, canvas.height / 2);
+      return;
+    }
+
+    // 2. Setup Graph Constants
+    const padding = 10;
+    const width = canvas.width - (padding * 2);
+    const height = canvas.height - (padding * 2);
+    
+    // Determine the Y-scale (finding the largest absolute value to center 0)
+    let maxVal = 0;
+    validData.forEach(m => {
+      maxVal = Math.max(
+        maxVal, 
+        Math.abs(parseFloat(m.material_eval) || 0), 
+        Math.abs(parseFloat(m.positional_eval) || 0), 
+        Math.abs(parseFloat(m.final_eval) || 0)
+      );
+    });
+    maxVal = maxVal || 100; 
+
+    // Helper to map values to Canvas coordinates
+    // X scales by move index, Y scales evaluation to height (0 is middle)
+    const getX = (index) => padding + (index * (width / (validData.length - 1 || 1)));
+    const getY = (val) => (canvas.height / 2) - ((val / maxVal) * (height / 2));
+
+    // 3. Drawing Function
+    const drawLine = (prop, color) => {
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+
+      validData.forEach((move, index) => {
+        const val = move[prop] || 0;
+        const x = getX(index);
+        const y = getY(val);
+
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.stroke();
+    };
+
+    // 4. Render the Graph
+    // Draw horizontal zero-line (X-axis)
+    ctx.beginPath();
+    ctx.strokeStyle = 'brown';
+    ctx.moveTo(padding, canvas.height / 2);
+    ctx.lineTo(canvas.width - padding, canvas.height / 2);
+    ctx.stroke();
+
+    // Draw the three evaluation lines
+    //drawLine('material_eval', 'black');
+    //drawLine('positional_eval', 'blue');
+    drawLine('final_eval', 'gray');
+  })();
+</script>
+
+  <script>
+
+    const mainLine = <%- JSON.stringify(moves) %>;
+    const startFen = "<%= startFen %>";
+    
+    let currentIndex = -1; // -1 means starting position
+    let board = null;
+    let game = new Chess();
+
+    function updateUI() {
+        const currentFen = currentIndex === -1 ? startFen : mainLine[currentIndex].fen;
+
+        const currentMatEval = currentIndex === -1 ? 0 : mainLine[currentIndex].material_eval;
+        const currentPosEval = currentIndex === -1 ? 0 : mainLine[currentIndex].positional_eval;
+        const currentEval = currentIndex === -1 ? 0 : mainLine[currentIndex].final_eval;
+  
+        board.position(currentFen);
+ 
+        game.load(currentFen);
+        $('#fen-text').text('FEN: ' + currentFen);
+        $('#evaluation').text('Eval: ' + currentEval);
+        
+        // Update Active Highlight
+        $('.move-item').removeClass('active');
+        $(`#move-${currentIndex + 1}`).addClass('active');
+    }
+
+    function goToMove(index) {
+        if (index >= -1 && index < mainLine.length) {
+            currentIndex = index;
+            updateUI();
+        }
+    }
+
+    // Keyboard Navigation
+    $(document).keydown(function(e) {
+        if (e.keyCode == 37) { // Left Arrow
+            goToMove(currentIndex - 1);
+        } else if (e.keyCode == 39) { // Right Arrow
+            goToMove(currentIndex + 1);
+        }
+    });
+
+    // Handle manual analysis dragging
+    function onDrop (source, target) {
+        let move = game.move({ from: source, to: target, promotion: 'q' });
+        if (move === null) return 'snapback';
+        
+        // Update FEN display for the custom line, but don't change mainLine index
+        $('#fen-text').text('FEN (Analysis): ' + game.fen());
+    }
+
+    function onDragStart (source, piece) {
+        if (game.game_over()) return false;
+        if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+            (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+            return false;
+        }
+    }
+
+    const config = {
+        draggable: true,
+        position: startFen,
+        onDragStart: onDragStart,
+        onDrop: onDrop,
+        pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+        //pieceTheme: '/img/{piece}.png'
+        //pieceTheme: function(piece) {
+        //  return '/img/' + piece.toLowerCase() + '.png';
+        //}
+    };
+
+    board = Chessboard('myBoard', config);
+
+    updateUI();   
+  </script>
+
+</body>
+</html> 

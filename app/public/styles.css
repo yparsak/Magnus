@@ -135,6 +135,7 @@
 .pane-middle {
     background-color: #ffffff;
     display: flex;
+    flex-direction: column;
     justify-content: flex-start;
     align-items: flex-start;
 }
@@ -144,6 +145,14 @@
     display: flex;
     justify-content: flex-start;
     align-items: flex-start;
+    flex-direction: column;
+}
+.pane-right {
+    background-color: #ffffff;
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    flex-direction: column;
 }
 
   .formcontainer {
@@ -308,4 +317,17 @@ tbody tr:hover {
     background-color: #e6e6e6;
     transition: 0.2s;
 }
+
+.pane { border-radius: 3px; padding: 15px; }
+#myBoard { width: 550px; }
+.move-history { display: flex; flex-wrap: wrap; gap: 5px; }
+.move-item { padding: 5px 8px; cursor: pointer; border-radius: 3px; background: whitesmoke; font-size: 0.9em; }
+.move-item.active { background: silver; color: red; border: 1px solid #555; }
+.fen-display { margin-top: 20px; font-family: monospace; font-size: 0.8em; word-break: break-all; color: gray; }
+.instructions { font-size: 0.8em; color: #666; margin-top: 10px; }
+
+    canvas {
+      background: whitesmoke;
+      border-radius: 10px;
+    }
 

@@ -7,6 +7,7 @@
   const indexRouter   = require('./routes/index');
   const playerRouter    = require('./routes/player');
   const accountRouter    = require('./routes/account');
+  const gameRouter = require('./routes/game');
 
   const getLocalIP = () => {
     const interfaces = os.networkInterfaces();
@@ -32,12 +33,14 @@
   const PORT = 3000;
 
   app.set('view engine', 'ejs');
+
   app.use(express.static(path.join(__dirname, 'public')));
 
   // -- Routes --
   app.use('/', indexRouter);
   app.use('/player', playerRouter);
   app.use('/account', accountRouter);
+  app.use('/game', gameRouter);
 
   app.listen(PORT, HOST, () => {
     console.log(`Local Access: http://localhost:${PORT}`);

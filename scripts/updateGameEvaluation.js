@@ -1,5 +1,5 @@
 
-  require('dotenv').config();
+  require('dotenv').config({ quiet: true });
   const mysql = require('mysql2/promise');
   const { spawn } = require('child_process');
 
@@ -81,6 +81,10 @@ function parseEval(output) {
 }
 
 async function main() {
+
+  const now = new Date();
+  console.log(`Starting Game Evaluation @ ${now.toLocaleString()}`);
+
   const conn = await mysql.createConnection(dbConfig);
 
   try {
@@ -136,16 +140,14 @@ async function main() {
         await conn.rollback();
         console.error(`Error processing Move ${move.id} ${err}`);
       }
-
-      
-
     }
-
-
   } catch (err) {
     console.error("Database connection error:", err);
   } finally {
     await conn.end();
+    const endtime = new Date();
+    console.log(`Done Game Evaluation @ ${endtime.toLocaleString()}`);
+
     timeout.unref();
   }
 }

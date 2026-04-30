@@ -7,7 +7,7 @@
 */
 
   const mariadb = require('mariadb');
-  require('dotenv').config();
+  require('dotenv').config({ quiet: true });
 
   // Configuration from dotenv 
   const pool = mariadb.createPool({
@@ -26,9 +26,8 @@
 
 async function updateGameOpenings() {
 
-  
-  //const now = new Date();
-  //console.log(`UpdatingGameOpenings @ ${now.toLocaleString()}`);
+  const now = new Date();
+  console.log(`UpdatingGameOpenings @ ${now.toLocaleString()}`);
 
   let conn;
  
@@ -94,8 +93,11 @@ async function updateGameOpenings() {
   } finally {
     if (conn) conn.release();
     timeout.unref();
+    const endtime = new Date();
+    console.log(`Done UpdatingGameOpenings @ ${endtime.toLocaleString()}`);
     process.exit();
   }
 }
 
 updateGameOpenings();
+

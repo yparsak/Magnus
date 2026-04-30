@@ -16,6 +16,7 @@
 
   router.get('/', async (req, res) => {
     const playerId = req.query.id;
+
     if (!playerId) {
         return res.status(400).send("player ID is required");
     }
@@ -25,15 +26,39 @@
             [playerId]
         );
         if (players.length > 0) {
-
-
           const [accounts] = await pool.query(
             `select a.id, a.accountname, p.name from accounts a left join platforms p on a.platform_id = p.id where a.player_id = ?`,
              [players[0].id] 
           );
 
-          res.render('player', { player: players[0], accounts: accounts });
+          const [games] = await pool.query(
+            `select pg.id, pg.white,pg.black,pg.result,pg.time_control, pg.date from player_games pg inner join accounts a on pg.platform_id = a.platform_id where a.player_id = ? limit 20`,
+             [players[0].id]
+          );
 
+          const formattedGames = games.map(game => {
+            const d = new Date(game.date);
+            const formatter = new Intl.DateTimeFormat('en-US', {
+              month: 'short',
+              day: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false
+            });
+
+            const parts = formatter.formatToParts(d);
+            const p = Object.fromEntries(parts.map(p => [p.type, p.value]));
+
+          // Construct exactly: MMM/DD/YYYY HH:MM:SS
+            const finalDate = `${p.month}/${p.day}/${p.year} ${p.hour}:${p.minute}:${p.second}`;
+
+            return { ...game, date: finalDate };
+          });
+
+
+          res.render('player', { player: players[0], accounts: accounts, games: formattedGames });
         } else {
             res.redirect('/');
         }

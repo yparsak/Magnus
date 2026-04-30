@@ -1,6 +1,7 @@
 
   require('dotenv').config({
-    path: require('path').resolve(__dirname, '.env')
+    path: require('path').resolve(__dirname, '.env'),
+    quiet: true 
   });
 
   const { Chess } = require('chess.js');
@@ -61,7 +62,7 @@
         );
 
         if (gamelist.length > 0) {
-          console.log("Game is already found in the database. Skipping..");
+          // console.log("Game is already found in the database. Skipping..");
           continue;
         }
 
@@ -355,17 +356,16 @@ async function download_chesscom(conn, platform_id, account) {
             break;
         }
       }
-
     }  catch (error) {
         console.error('Fatal Connection Error: ', error.message);
     } finally {
         if (conn) {
             await conn.end();
-            console.log('Connection closed.');
+            //console.log('Connection closed.');
         }
         timeout.unref();
+        const endtime = new Date();
+        console.log(`Done Downloading games @ ${endtime.toLocaleString()}`);
     }
-
   }
-
 main();

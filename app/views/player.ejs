@@ -42,7 +42,36 @@
        <div>No chess acounts found for <%= player.name %> <%= player.lastname %>.
             Please add chess account.</div> 
       <% } else { %>
-        <div></div>
+        <div>
+
+          <% if (games.length === 0) { %>
+            No games found in the database. If cronjobs are set, they should be downloaded after midnight. 
+          <% } else {%>
+           <table>
+             <thead>
+               <tr>
+                 <th>White</th>
+                 <th>Black</th>
+                 <th>Result</th>
+                 <th>Time Control</th>
+                 <th>Date</th>
+               </tr>
+             </thead>
+             <tbody>
+               <% games.forEach(game => { %>
+                 <tr onclick="window.location='game?id=<%= game.id %>';" style="cursor: pointer;">
+                   <td><%= game.white %></td>
+                   <td><%= game.black %></td>
+                   <td><%= game.result %></td>
+                   <td><%= game.time_control %></td>
+                   <td><%= game.date%></td>
+                 </tr>
+               <% }) %>
+             </tbody>
+           </table>
+          <% } %>
+
+        </div>
       <% } %>
     </section>
 

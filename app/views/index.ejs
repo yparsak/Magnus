@@ -56,7 +56,7 @@
              </thead>
              <tbody>
                <% gameList.forEach(game => { %>
-                 <tr>
+                 <tr onclick="window.location='game?id=<%= game.id %>';" style="cursor: pointer;" >
                    <td><%= game.white %></td>
                    <td><%= game.black %></td>
                    <td><%= game.result %></td>

@@ -21,7 +21,7 @@
       const [accounts] = await pool.query('SELECT id FROM accounts');
 
       const [games] = await pool.query(
-         'SELECT pg.white, pg.black, pg.date, pg.result, pg.time_control, ob.eco, ob.name FROM player_games pg LEFT JOIN opening_book ob on pg.book_id = ob.id ORDER by pg.id DESC LIMIT 20' 
+         'SELECT pg.id, pg.white, pg.black, pg.date, pg.result, pg.time_control, ob.eco, ob.name FROM player_games pg LEFT JOIN opening_book ob on pg.book_id = ob.id ORDER by pg.id DESC LIMIT 20' 
       );
 
 
