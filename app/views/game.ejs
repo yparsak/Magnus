@@ -16,13 +16,20 @@
     </aside>
 
     <section class="pane pane-middle">
-      <div id="Black"><strong><%= info[0].black %> </strong> 
-          (<%= info[0].black_elo %>)
+      <div style="margin-bottom: 10px;">
+        <button id="flipBoardBtn" class="btn">Flip Board</button>
       </div>
+
+      <div id="top_player">
+        <strong><%= info[0].black %></strong> (<%= info[0].black_elo %>)
+      </div>
+
       <div id="myBoard"></div>
-      <div id="White"><strong> <%= info[0].white %></strong>
-          (<%= info[0].white_elo %>) 
+
+      <div id="bottom_player">
+        <strong><%= info[0].white %></strong> (<%= info[0].white_elo %>)
       </div>
+
       <div><%= info[0].eco %> <%= info[0].name %></div>
       <div><%= info[0].time_control %> <%= info[0].result %> <%= info[0].termination %></div>
       <div id="fen-text">FEN: Loading...</div>
@@ -206,6 +213,17 @@
     };
 
     board = Chessboard('myBoard', config);
+
+    $('#flipBoardBtn').on('click', function() {
+        board.flip();
+        
+        // Swap player name text
+        const topHtml = $('#top_player').html();
+        const bottomHtml = $('#bottom_player').html();
+        
+        $('#top_player').html(bottomHtml);
+        $('#bottom_player').html(topHtml);
+    });
 
     updateUI();   
   </script>
