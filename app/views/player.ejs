@@ -37,7 +37,7 @@
       </table>
     </aside>
 
-    <section class="pane pane-middle">
+  <section class="pane pane-middle">
       <% if (accounts.length === 0) {%>
        <div>No chess acounts found for <%= player.name %> <%= player.lastname %>.
             Please add chess account.</div> 
@@ -47,6 +47,21 @@
           <% if (games.length === 0) { %>
             No games found in the database. If cronjobs are set, they should be downloaded after midnight. 
           <% } else {%>
+
+           <div class="pagination" style="text-align: center;">
+             <table>
+             <tr><td style="text-align: left;">
+             <% if (currentPage > 1) { %>
+               <a href="/player?id=<%= player.id %>&page=<%= currentPage - 1 %>" class="btn-paging">Previous</a>
+             <% } %>
+             </td><td style="text-align: right;">
+             <% if (hasNextPage) { %>
+               <a href="/player?id=<%= player.id %>&page=<%= currentPage + 1 %>" class="btn-paging">Next</a>
+             <% } %>
+             </td></tr>
+             </table>
+           </div>
+
            <table>
              <thead>
                <tr>
@@ -59,7 +74,7 @@
              </thead>
              <tbody>
                <% games.forEach(game => { %>
-                 <tr onclick="window.location='game?id=<%= game.id %>';" style="cursor: pointer;">
+                 <tr onclick="window.location='game?id=<%= game.id %>&player=<%=player.id%>';" style="cursor: pointer;">
                    <td><%= game.white %></td>
                    <td><%= game.black %></td>
                    <td><%= game.result %></td>
@@ -69,6 +84,21 @@
                <% }) %>
              </tbody>
            </table>
+
+           <div class="pagination" style="text-align: center;">
+             <table>
+             <tr><td style="text-align: left;">
+             <% if (currentPage > 1) { %>
+               <a href="/player?id=<%= player.id %>&page=<%= currentPage - 1 %>" class="btn-paging">Previous</a>
+             <% } %>
+             </td><td style="text-align: right;">
+             <% if (hasNextPage) { %>
+               <a href="/player?id=<%= player.id %>&page=<%= currentPage + 1 %>" class="btn-paging">Next</a>
+             <% } %>
+             </td></tr>
+             </table>
+           </div>
+
           <% } %>
 
         </div>

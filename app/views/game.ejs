@@ -1,6 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
   <%- include('partials/head') %>
+  <style>
+    #promotion-layer {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+    .promotion-options {
+      background: #f0d9b5;
+      padding: 20px;
+      border-radius: 8px;
+      display: flex;
+      gap: 15px;
+      border: 4px solid #b58863;
+    }
+    .promotion-options img {
+      width: 80px;
+      height: 80px;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.2s;
+      border-radius: 4px;
+    }
+    .promotion-options img:hover {
+      background: #b58863;
+      transform: scale(1.1);
+    }
+
+    #myBoard {
+      width: 80%;    
+      margin: 0 auto; 
+    }
+
+    .pane-middle {
+      display: flex;
+      flex-direction: column;
+      align-items: center; /* Center children vertically/horizontally */
+    }
+
+    #top_player, #bottom_player {
+      width: 80%; /* Match board width for alignment */
+      text-align: left;
+      margin: 5px 0;
+    }
+  </style>
 <body>
   <header class="navbar">
     <div class="left-group">
@@ -9,16 +56,38 @@
     </div>
   </header>
 
+  <div id="promotion-layer">
+    <div class="promotion-options" id="promotion-choices"></div>
+  </div>
+
   <div class="container">
     <aside class="pane pane-left">
-      <div id="evaluation">Eval:</div>
-      <canvas id="graph" width="280" height="100"></canvas>
+          <% if (player) {%>
+          <table><tbody>
+          <tr><td><%= player.name %> <%= player.lastname %></td></tr>
+          </tbody></table>
+          <% } %>
+       <table>
+         <tbody>
+          <tr><td><div id="evaluation" class="eval">Eval:</div></td></tr>
+          <tr><td><canvas id="graph" width="280" height="100"></canvas></td></tr>
+        </tbody>
+      </table>
     </aside>
 
     <section class="pane pane-middle">
-      <div style="margin-bottom: 10px;">
-        <button id="flipBoardBtn" class="btn">Flip Board</button>
-      </div>
+      <table style="width: 100%;">
+        <tbody>
+          <tr>
+             <td><button id="flipBoardBtn" class="flip" >Flip Board</button></td>
+             <td><div><strong>Time Control:</strong> <%= info[0].time_control %> </div>
+                 <div><strong>Result:</strong> <%= info[0].result %> (<%= info[0].termination %>)</div>
+                 <div><strong>Opening:</strong> <%= info[0].eco %> <%= info[0].name %></div>
+                 <div id="fen-text" class="fen-display">FEN: Loading...</div> 
+             </td>
+          </tr>
+        </tbody>
+      </table>
 
       <div id="top_player">
         <strong><%= info[0].black %></strong> (<%= info[0].black_elo %>)
@@ -29,10 +98,6 @@
       <div id="bottom_player">
         <strong><%= info[0].white %></strong> (<%= info[0].white_elo %>)
       </div>
-
-      <div><%= info[0].eco %> <%= info[0].name %></div>
-      <div><%= info[0].time_control %> <%= info[0].result %> <%= info[0].termination %></div>
-      <div id="fen-text">FEN: Loading...</div>
     </section>
 
     <aside class="pane pane-right">
@@ -45,124 +110,70 @@
             <%= index + 1 %>. <%= move.short_notation %>
           </div>
         <% }) %>
-        </div>
       </div>
     </aside>
   </div>
 
-<script>
-  (function() {
-    const canvas = document.getElementById('graph');
-    const ctx = canvas.getContext('2d');
-    const moves = <%- JSON.stringify(moves) %>;
-
-    // Filter out moves where all evaluations are zero (check/mate) or null
-    const validData = moves.filter(m => {
-      // Convert potential strings to numbers
-      const mat = parseFloat(m.material_eval);
-      const pos = parseFloat(m.positional_eval);
-      const fin = parseFloat(m.final_eval);
-
-      // 1. Check if they are valid numbers (not NULL or undefined)
-      const hasData = !isNaN(mat) && !isNaN(pos) && !isNaN(fin);
-  
-      // 2. Check if they are all zero. 
-      // This catches 0, "0", "0.00", and -0.00
-      const isNotAllZero = !(mat === 0 && pos === 0 && fin === 0);
-
-      return hasData && isNotAllZero;
-    });
-
-
-    // 1. Handle Empty Data State
-    if (validData.length === 0) {
-      ctx.font = "14px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("No evaluation data found", canvas.width / 2, canvas.height / 2);
-      return;
-    }
-
-    // 2. Setup Graph Constants
-    const padding = 10;
-    const width = canvas.width - (padding * 2);
-    const height = canvas.height - (padding * 2);
+  <script>
     
-    // Determine the Y-scale (finding the largest absolute value to center 0)
-    let maxVal = 0;
-    validData.forEach(m => {
-      maxVal = Math.max(
-        maxVal, 
-        Math.abs(parseFloat(m.material_eval) || 0), 
-        Math.abs(parseFloat(m.positional_eval) || 0), 
-        Math.abs(parseFloat(m.final_eval) || 0)
-      );
-    });
-    maxVal = maxVal || 100; 
-
-    // Helper to map values to Canvas coordinates
-    // X scales by move index, Y scales evaluation to height (0 is middle)
-    const getX = (index) => padding + (index * (width / (validData.length - 1 || 1)));
-    const getY = (val) => (canvas.height / 2) - ((val / maxVal) * (height / 2));
-
-    // 3. Drawing Function
-    const drawLine = (prop, color) => {
+    (function() {
+      const canvas = document.getElementById('graph');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const moves = <%- JSON.stringify(moves) %>;
+      const validData = moves.filter(m => {
+        const fin = parseFloat(m.final_eval);
+        return !isNaN(fin) && fin !== 0;
+      });
+      if (validData.length === 0) return;
+      const padding = 10;
+      const width = canvas.width - (padding * 2);
+      const height = canvas.height - (padding * 2);
+      let maxVal = 0;
+      validData.forEach(m => { maxVal = Math.max(maxVal, Math.abs(parseFloat(m.final_eval))); });
+      maxVal = maxVal || 10;
+      const getX = (i) => padding + (i * (width / (validData.length - 1 || 1)));
+      const getY = (v) => (canvas.height / 2) - ((v / maxVal) * (height / 2));
       ctx.beginPath();
-      ctx.strokeStyle = color;
+      ctx.strokeStyle = 'brown';
+      ctx.moveTo(padding, canvas.height / 2);
+      ctx.lineTo(canvas.width - padding, canvas.height / 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.strokeStyle = 'gray';
       ctx.lineWidth = 2;
-      ctx.lineJoin = 'round';
-
-      validData.forEach((move, index) => {
-        const val = move[prop] || 0;
-        const x = getX(index);
-        const y = getY(val);
-
-        if (index === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
+      validData.forEach((m, i) => {
+        const x = getX(i); const y = getY(parseFloat(m.final_eval));
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       });
       ctx.stroke();
-    };
-
-    // 4. Render the Graph
-    // Draw horizontal zero-line (X-axis)
-    ctx.beginPath();
-    ctx.strokeStyle = 'brown';
-    ctx.moveTo(padding, canvas.height / 2);
-    ctx.lineTo(canvas.width - padding, canvas.height / 2);
-    ctx.stroke();
-
-    // Draw the three evaluation lines
-    //drawLine('material_eval', 'black');
-    //drawLine('positional_eval', 'blue');
-    drawLine('final_eval', 'gray');
-  })();
-</script>
+    })();
+  </script>
 
   <script>
-
+    const info     = <%- JSON.stringify(info) %>;
     const mainLine = <%- JSON.stringify(moves) %>;
     const startFen = "<%= startFen %>";
     
-    let currentIndex = -1; // -1 means starting position
+    let currentIndex = -1; 
     let board = null;
     let game = new Chess();
 
+    function rotate() {
+      board.flip();
+      const topHtml = $('#top_player').html();
+      const bottomHtml = $('#bottom_player').html();
+      $('#top_player').html(bottomHtml);
+      $('#bottom_player').html(topHtml);
+    }
+
     function updateUI() {
         const currentFen = currentIndex === -1 ? startFen : mainLine[currentIndex].fen;
-
-        const currentMatEval = currentIndex === -1 ? 0 : mainLine[currentIndex].material_eval;
-        const currentPosEval = currentIndex === -1 ? 0 : mainLine[currentIndex].positional_eval;
         const currentEval = currentIndex === -1 ? 0 : mainLine[currentIndex].final_eval;
-  
         board.position(currentFen);
- 
         game.load(currentFen);
         $('#fen-text').text('FEN: ' + currentFen);
         $('#evaluation').text('Eval: ' + currentEval);
-        
-        // Update Active Highlight
         $('.move-item').removeClass('active');
         $(`#move-${currentIndex + 1}`).addClass('active');
     }
@@ -173,22 +184,48 @@
             updateUI();
         }
     }
+    
+    function showPromotionMenu(color, source, target) {
+      const pieces = ['q', 'r', 'b', 'n'];
+      const $menu = $('#promotion-choices').empty();
+      const theme = 'https://chessboardjs.com/img/chesspieces/wikipedia/';
 
-    // Keyboard Navigation
-    $(document).keydown(function(e) {
-        if (e.keyCode == 37) { // Left Arrow
-            goToMove(currentIndex - 1);
-        } else if (e.keyCode == 39) { // Right Arrow
-            goToMove(currentIndex + 1);
-        }
-    });
+      pieces.forEach(p => {
+        const imgSrc = `${theme}${color}${p.toUpperCase()}.png`;
+        const $img = $(`<img src="${imgSrc}">`).on('click', function() {
+          finalizePromotion(source, target, p);
+        });
+        $menu.append($img);
+      });
 
-    // Handle manual analysis dragging
+      $('#promotion-layer').css('display', 'flex');
+    }
+
+    function finalizePromotion(source, target, piece) {
+      $('#promotion-layer').hide();
+      game.move({ from: source, to: target, promotion: piece });
+      board.position(game.fen());
+      $('#fen-text').text('FEN (Analysis): ' + game.fen());
+    }
+
     function onDrop (source, target) {
-        let move = game.move({ from: source, to: target, promotion: 'q' });
+        const piece = game.get(source);
+        if (piece && piece.type === 'p') {
+            const isWhitePromotion = piece.color === 'w' && target[1] === '8';
+            const isBlackPromotion = piece.color === 'b' && target[1] === '1';
+            
+            if (isWhitePromotion || isBlackPromotion) {
+                const tempGame = new Chess(game.fen());
+                const move = tempGame.move({ from: source, to: target, promotion: 'q' });
+                if (!move) return 'snapback';
+
+                showPromotionMenu(piece.color, source, target);
+                return; 
+            }
+        }
+
+        let move = game.move({ from: source, to: target });
         if (move === null) return 'snapback';
-        
-        // Update FEN display for the custom line, but don't change mainLine index
         $('#fen-text').text('FEN (Analysis): ' + game.fen());
     }
 
@@ -206,27 +243,20 @@
         onDragStart: onDragStart,
         onDrop: onDrop,
         pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
-        //pieceTheme: '/img/{piece}.png'
-        //pieceTheme: function(piece) {
-        //  return '/img/' + piece.toLowerCase() + '.png';
-        //}
     };
 
     board = Chessboard('myBoard', config);
+    
+    $(window).on('resize', board.resize);
 
-    $('#flipBoardBtn').on('click', function() {
-        board.flip();
-        
-        // Swap player name text
-        const topHtml = $('#top_player').html();
-        const bottomHtml = $('#bottom_player').html();
-        
-        $('#top_player').html(bottomHtml);
-        $('#bottom_player').html(topHtml);
-    });
-
+    if (info && info[0].side == 0) rotate();
+    $('#flipBoardBtn').on('click', rotate);
     updateUI();   
-  </script>
 
+    $(document).keydown(e => {
+        if (e.keyCode == 37) goToMove(currentIndex - 1);
+        if (e.keyCode == 39) goToMove(currentIndex + 1);
+    });
+  </script>
 </body>
-</html> 
+</html>

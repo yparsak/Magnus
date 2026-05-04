@@ -217,6 +217,17 @@
     background: #245f98;
   }
 
+  .flip {
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: #2c73b8;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    max-width: 100px;
+  }
+
   .divider {
     text-align: center;
     margin: 20px 0;
@@ -323,7 +334,9 @@ tbody tr:hover {
 .move-history { display: flex; flex-wrap: wrap; gap: 5px; }
 .move-item { padding: 5px 8px; cursor: pointer; border-radius: 3px; background: whitesmoke; font-size: 0.9em; }
 .move-item.active { background: silver; color: red; border: 1px solid #555; }
-.fen-display { margin-top: 20px; font-family: monospace; font-size: 0.8em; word-break: break-all; color: gray; }
+
+.eval {font-family: monospace; font-size: 1.2em; word-break: break-all; color: brown;}
+.fen-display { font-family: monospace; font-size: 0.8em; word-break: break-all; color: gray; }
 .instructions { font-size: 0.8em; color: #666; margin-top: 10px; }
 
     canvas {

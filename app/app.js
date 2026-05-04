@@ -43,6 +43,10 @@
   app.use('/game', gameRouter);
 
   app.listen(PORT, HOST, () => {
-    console.log(`Local Access: http://localhost:${PORT}`);
+
+    const now = new Date();
+    console.log(`Magnus Starting @ ${now.toLocaleString()}`);
+
+    //console.log(`Local Access: http://localhost:${PORT}`);
     console.log(`Network Access: http://${HOST}:${PORT}`);
   });

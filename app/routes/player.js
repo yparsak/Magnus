@@ -1,4 +1,8 @@
-  require('dotenv').config();
+
+  require('dotenv').config({
+    quiet: true 
+  });
+
   const mysql = require('mysql2');
   const path = require('path'); 
 
@@ -16,6 +20,10 @@
 
   router.get('/', async (req, res) => {
     const playerId = req.query.id;
+    // Get current page from query, default to 1
+    const page = parseInt(req.query.page) || 1;
+    const limit = 20;
+    const offset = (page - 1) * limit;
 
     if (!playerId) {
         return res.status(400).send("player ID is required");
@@ -25,40 +33,53 @@
             `SELECT id, name, lastname FROM players WHERE id = ?`,
             [playerId]
         );
+        
         if (players.length > 0) {
-          const [accounts] = await pool.query(
-            `select a.id, a.accountname, p.name from accounts a left join platforms p on a.platform_id = p.id where a.player_id = ?`,
-             [players[0].id] 
-          );
+            const [accounts] = await pool.query(
+                `select a.id, a.accountname, p.name from accounts a left join platforms p on a.platform_id = p.id where a.player_id = ?`,
+                [players[0].id]
+            );
 
-          const [games] = await pool.query(
-            `select pg.id, pg.white,pg.black,pg.result,pg.time_control, pg.date from player_games pg inner join accounts a on pg.platform_id = a.platform_id where a.player_id = ? limit 20`,
-             [players[0].id]
-          );
+            const [games] = await pool.query(
+                `select pg.id, pg.white, pg.black, pg.result, pg.time_control, pg.date, pg.side  
+                 from player_games pg 
+                 inner join accounts a on pg.platform_id = a.platform_id 
+                 where a.player_id = ? 
+                 order by pg.date desc 
+                 limit ? offset ?`,
+                [players[0].id, limit + 1, offset]
+            );
 
-          const formattedGames = games.map(game => {
-            const d = new Date(game.date);
-            const formatter = new Intl.DateTimeFormat('en-US', {
-              month: 'short',
-              day: '2-digit',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-              hour12: false
+            const hasNextPage = games.length > limit;
+            // Slice the array to only 20 items for display
+            const displayGames = games.slice(0, limit);
+
+            const formattedGames = displayGames.map(game => {
+                const d = new Date(game.date);
+                const formatter = new Intl.DateTimeFormat('en-US', {
+                    month: 'short',
+                    day: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+
+                const parts = formatter.formatToParts(d);
+                const p = Object.fromEntries(parts.map(p => [p.type, p.value]));
+                const finalDate = `${p.month}/${p.day}/${p.year} ${p.hour}:${p.minute}:${p.second}`;
+
+                return { ...game, date: finalDate };
             });
 
-            const parts = formatter.formatToParts(d);
-            const p = Object.fromEntries(parts.map(p => [p.type, p.value]));
-
-          // Construct exactly: MMM/DD/YYYY HH:MM:SS
-            const finalDate = `${p.month}/${p.day}/${p.year} ${p.hour}:${p.minute}:${p.second}`;
-
-            return { ...game, date: finalDate };
-          });
-
-
-          res.render('player', { player: players[0], accounts: accounts, games: formattedGames });
+            res.render('player', { 
+                player: players[0], 
+                accounts: accounts, 
+                games: formattedGames,
+                currentPage: page,
+                hasNextPage: hasNextPage
+            });
         } else {
             res.redirect('/');
         }
