@@ -122,7 +122,7 @@ async function main() {
             const [evalResult] = await conn.execute(
                `INSERT INTO evaluation (fen,material_eval, positional_eval, final_eval, incheck, mate) 
                VALUES (?,?, ?, ?, ?, ?)`,
-               [move.fen, valData.material, evalData.positional, evalData.final, evalData.in_check, evalData.mate]
+               [move.fen, evalData.material, evalData.positional, evalData.final, evalData.in_check, evalData.mate]
             );
 
             const newEvalId = evalResult.insertId;
