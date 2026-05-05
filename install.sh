@@ -267,8 +267,8 @@
 
   # --
   PROGRAM_NAME='updateGameEvaluation.js'
-  # every hour between 7am - 11pm
-  CRON_SCHEDULE="0 7-23 * * *"
+  # every hour 
+  CRON_SCHEDULE="0 * * * *"
   CRON_JOB="$CRON_SCHEDULE cd ${APP_PATH}/scripts/ && node ${PROGRAM_NAME} >> ${LOGFILE}"
   if sudo -u "$SUDO_USER" crontab -l 2>/dev/null | grep -q "$PROGRAM_NAME"; then
     echo "The task ${PROGRAM_NAME} already exists in ${SUDO_USER}'s crontab. Skipping."

@@ -123,8 +123,7 @@ CREATE TABLE `evaluation` (
   `final_eval` decimal(10,2) DEFAULT NULL,
   `incheck` tinyint(1) DEFAULT NULL,
   `mate` tinyint(1) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_fen` (`fen`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -137,4 +136,4 @@ CREATE TABLE `evaluation` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-04-21 19:56:29
+-- Dump completed on 2026-05-05 12:11:22
