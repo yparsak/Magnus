@@ -10,12 +10,12 @@
     database: process.env.DB_NAME
   };
 
-  const ENGINE_PATH = process.env.ENGINE_PATH;
-
   const timeout = setTimeout(() => {
     console.error('ERROR: Script timed out!');
     process.exit(1);
   }, 3600000);
+
+  const ENGINE_PATH = process.env.ENGINE_PATH;
 
   async function getStockfishData(fen) {
     return new Promise((resolve) => {
@@ -38,7 +38,7 @@
     });
   }
 
-function parseEval(output) {
+  function parseEval(output) {
     if (output.includes("Final evaluation: none (in check)")) {
       if (output.includes("bestmove (none)")) {
         return {
@@ -78,79 +78,102 @@ function parseEval(output) {
         in_check: 0,
         mate: 0
     };
-}
+  }
+  
+  async function main() {
 
-async function main() {
+    const now = new Date();
+    console.log(`Starting Game Evaluation @ ${now.toLocaleString()}`);
 
-  const now = new Date();
-  console.log(`Starting Game Evaluation @ ${now.toLocaleString()}`);
+    const conn = await mysql.createConnection(dbConfig);
 
-  const conn = await mysql.createConnection(dbConfig);
+    try {
 
-  try {
+      //Evaluatate a single game at each run...
+      const [game] = await conn.execute(
+          'SELECT game_id FROM game_moves WHERE eval_id IS NULL LIMIT 1'
+      );
 
-    const [moves] = await conn.execute(
-          'SELECT id, fen FROM game_moves WHERE eval_id IS NULL LIMIT 100'
-    );
-
-    for (const move of moves) {
-      //console.log(`Processing Move ${move.id}`);
-      await conn.beginTransaction();
-
-      try {
-        const [eval] = await conn.execute(
-          'SELECT id FROM evaluation WHERE fen = ? LIMIT 1',
-          [move.fen]
+      if (game.length > 0) {
+        const [moves] = await conn.execute(
+          'SELECT * from game_moves where game_id = ?',
+          [game[0].game_id]
         );
 
-        if (eval.length > 0) {
-          await conn.execute(
-            'UPDATE game_moves SET eval_id = ? WHERE id = ?',
-            [eval[0].id, move.id]
-          );  
-        } else {
+        if (moves.length > 0) {
 
-          const rawOutput = await getStockfishData(move.fen); 
+          let eval_min = Infinity;
+          let eval_max = -Infinity;
 
-          const evalData = parseEval(rawOutput);
+          //console.log(`Game: ${game[0].game_id}`);
 
-          if (evalData == null) {
-            console.log(`Error: Unable to parse Evaluation Data`);
-            //console.log(rawOutput);
-          } else {
+          for (const move of moves) {
+            // console.log(`${move.short_notation}`);
 
-            const [evalResult] = await conn.execute(
-               `INSERT INTO evaluation (fen,material_eval, positional_eval, final_eval, incheck, mate) 
-               VALUES (?,?, ?, ?, ?, ?)`,
-               [move.fen, evalData.material, evalData.positional, evalData.final, evalData.in_check, evalData.mate]
-            );
+            await conn.beginTransaction();
+            try {
+              const [eval] = await conn.execute(
+                'SELECT id FROM evaluation WHERE fen = ? LIMIT 1',
+                [move.fen]
+              );
+              if (eval.length > 0) {
+                await conn.execute(
+                  'UPDATE game_moves SET eval_id = ? WHERE id = ?',
+                  [eval[0].id, move.id]
+                );  
+              } else {
+                const rawOutput = await getStockfishData(move.fen);
+                const evalData = parseEval(rawOutput);
 
-            const newEvalId = evalResult.insertId;
+                if (evalData == null) {
+                  console.log(`Error: Unable to parse Evaluation Data`);
+                } else {
+                  const [evalResult] = await conn.execute(
+                    `INSERT INTO evaluation (fen, material_eval, positional_eval, final_eval, incheck, mate) 
+                    VALUES (?, ?, ?, ?, ?, ?)`,
+                    [move.fen, evalData.material, evalData.positional, evalData.final, evalData.in_check, evalData.mate]
+                  );
 
-            await conn.execute(
-              'UPDATE game_moves SET eval_id = ? WHERE id = ?',
-              [newEvalId, move.id]
-            );
-            //console.log(` ${evalData.material} ${evalData.positional} ${evalData.final} ${evalData.in_check} ${evalData.mate}`);
+                  const value = parseFloat(evalData.final);
+                  if (value < eval_min) eval_min = value;
+                  if (value > eval_max) eval_max = value;
+  
+                  //console.log(`Eval: ${evalData.final} min: ${eval_min} max: ${eval_max}`);
+
+                  const newEvalId = evalResult.insertId;
+                  await conn.execute(
+                    'UPDATE game_moves SET eval_id = ? WHERE id = ?',
+                    [newEvalId, move.id]
+                  );
+                }
+              }
+              await conn.commit();
+            } catch (err) {
+              await conn.rollback();
+              console.error(`Error processing Move ${move.id} ${err}`);
+            }
           }
-        }
 
-        await conn.commit();
-      } catch (err) {
-        await conn.rollback();
-        console.error(`Error processing Move ${move.id} ${err}`);
+         // console.log(`Eval: ${eval_min} ${eval_max}`);
+
+          await conn.execute(
+            `UPDATE player_games SET eval_max = ?, eval_min = ? WHERE id = ?`,
+             [eval_max, eval_min, game[0].game_id]
+          );
+          
+        } 
       }
+
+    } catch(err) {
+      console.error("Database connection error:", err);
+    } finally {
+      await conn.end();
+      const endtime = new Date();
+      console.log(`Done Game Evaluation @ ${endtime.toLocaleString()}`);
+      timeout.unref(); 
     }
-  } catch (err) {
-    console.error("Database connection error:", err);
-  } finally {
-    await conn.end();
-    const endtime = new Date();
-    console.log(`Done Game Evaluation @ ${endtime.toLocaleString()}`);
-
-    timeout.unref();
   }
-}
 
-main();
+  main(); 
+
 

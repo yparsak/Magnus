@@ -126,7 +126,7 @@ async function checkChessComUser(user) {
       case "lichess.org":
         const isLichessUser = await checkLichessUser(accountName);
         if (isLichessUser) {
-          console.log('lichess account does exist');
+          // console.log('lichess account does exist');
           // intentional fall through
         } else  {
           console.log('lichess account does NOT exist');
@@ -137,7 +137,7 @@ async function checkChessComUser(user) {
       case "chess.com":
         const isChessComUser = await checkChessComUser(accountName);
         if (isChessComUser) {
-          console.log('chess.com account does exists');
+          //console.log('chess.com account does exists');
           // intentional fall through
         } else  {
           console.log('chess.com account does NOT exists');
@@ -150,7 +150,7 @@ async function checkChessComUser(user) {
         return res.redirect('/account/add?error=unknown_platform');
     }
 
-   addPlayerAccount(playerId, platform, accountName)
+    addPlayerAccount(playerId, platform, accountName)
 
     return res.redirect(`/player?id=${playerId}`);
 
