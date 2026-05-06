@@ -30,13 +30,13 @@
     try {
 
       const [gameInfo] = await pool.query(
-        `select pg.date, pg.white_elo, pg.black_elo, pg.termination, pg.result,pg.side, pg.time_control, pg.white, pg.black,ob.eco,ob.name from player_games pg left join opening_book ob on pg.book_id = ob.id
+        `select pg.date, pg.white_elo, pg.black_elo, pg.termination, pg.result,pg.side, pg.time_control, pg.white, pg.black, pg.eval_min, pg.eval_max, ob.eco,ob.name from player_games pg left join opening_book ob on pg.book_id = ob.id
  where pg.id= ?`,
         [gameId]
       );
 
       const [gameData] = await pool.query(
-        `select gm.id,gm.fen,gm.short_notation,e.material_eval, e.positional_eval, e.final_eval from game_moves gm left join evaluation e on gm.eval_id = e.id where game_id = ?`,
+        `select gm.id,gm.fen,gm.short_notation,e.material_eval, e.positional_eval, e.final_eval, e.incheck, e.mate from game_moves gm left join evaluation e on gm.eval_id = e.id where game_id = ?`,
         [gameId]
       );
 

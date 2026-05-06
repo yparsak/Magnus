@@ -71,6 +71,7 @@
          <tbody>
           <tr><td><div id="evaluation" class="eval">Eval:</div></td></tr>
           <tr><td><canvas id="graph" width="280" height="100"></canvas></td></tr>
+          <tr><td><div><strong>Min:</strong> <%=info[0].eval_min %> <strong>Max: </strong> <%=info[0].eval_max %></div></td></tr>
         </tbody>
       </table>
     </aside>
@@ -170,10 +171,22 @@
     function updateUI() {
         const currentFen = currentIndex === -1 ? startFen : mainLine[currentIndex].fen;
         const currentEval = currentIndex === -1 ? 0 : mainLine[currentIndex].final_eval;
+
+        const isCheck = currentIndex === -1 ? 0 : mainLine[currentIndex].incheck;
+        const isMate  = currentIndex === -1 ? 0 : mainLine[currentIndex].mate;
+ 
         board.position(currentFen);
         game.load(currentFen);
         $('#fen-text').text('FEN: ' + currentFen);
-        $('#evaluation').text('Eval: ' + currentEval);
+
+        if (isMate === 1) {
+          $('#evaluation').text('Eval: Mate');
+        } else if (isCheck === 1) {
+          $('#evaluation').text('Eval: Check');
+        } else {
+          $('#evaluation').text('Eval: ' + currentEval);
+        }
+
         $('.move-item').removeClass('active');
         $(`#move-${currentIndex + 1}`).addClass('active');
     }
