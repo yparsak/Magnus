@@ -1,0 +1,60 @@
+  <div class="layout-main">
+    <div class="layout-double">
+      <main class="center-column">
+        <div class="board-wrap">
+          <div class="board-toolbar">
+            <button type="button" id="toolPointerBtn" class="edit-tool-btn tool-pointer-btn active" title="Move pieces" aria-label="Move pieces"><img src="/imgs/hand.png" alt=""></button>
+            <button type="button" id="toolTrashBtn" class="edit-tool-btn tool-trash-btn" title="Delete pieces" aria-label="Delete pieces"><img src="/imgs/trash.png" alt=""></button>
+            <button type="button" id="toolRotateBtn" class="edit-tool-btn tool-rotate-btn" title="Flip board" aria-label="Flip board"><img src="/imgs/rotate.png" alt=""></button>
+          </div>
+          <div id="board" class="board-container"></div>
+          <div class="fen-row">
+            <input type="text" id="fenInput" class="editor-text-input fen-input" spellcheck="false">
+          </div>
+        </div>
+      </main>
+
+      <aside class="right-panel editor-panel">
+        <div id="editorControls">
+          <div class="editor-control-group">
+            <select id="turnSelect" class="editor-select">
+              <option value="w">White to play</option>
+              <option value="b">Black to play</option>
+            </select>
+          </div>
+
+          <div class="editor-control-group">
+            <div class="editor-group-title">Castling</div>
+            <div class="castling-grid">
+              <label><input type="checkbox" id="castleWK" checked> White O-O</label>
+              <label><input type="checkbox" id="castleWQ" checked> White O-O-O</label>
+              <label><input type="checkbox" id="castleBK" checked> Black O-O</label>
+              <label><input type="checkbox" id="castleBQ" checked> Black O-O-O</label>
+            </div>
+          </div>
+
+          <div class="editor-control-group">
+            <label for="epSelect" class="editor-group-title">En passant</label>
+            <select id="epSelect" class="editor-select"></select>
+          </div>
+
+          <div class="editor-control-group">
+            <div class="editor-group-title">Set the board</div>
+            <div class="set-board-row">
+              <input type="text" id="setBoardInput" class="editor-text-input" placeholder="Paste FEN..." spellcheck="false">
+              <button type="button" id="setBoardApply" class="submit">Apply</button>
+            </div>
+          </div>
+
+          <div class="editor-links">
+            <a href="#" id="linkStartPos" class="editor-link">Starting position</a>
+            <a href="#" id="linkClearBoard" class="editor-link">Clear board</a>
+            <a href="#" id="linkAnalysisBoard" class="editor-link">Analysis board</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+  </div>
+
+  <script src="/js/editor.chess.js"></script>

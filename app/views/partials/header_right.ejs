@@ -1,0 +1,13 @@
+<div class="right-group">
+  <span>Settings</span>
+  <span class="divider">|</span>
+  <% if (currentUser) { %>
+    <span class="current-user"><%= currentUser.username %></span>
+    <span class="divider">|</span>
+    <form class="logout-form" method="POST" action="/logout">
+      <button type="submit" class="link-button">Logout</button>
+    </form>
+  <% } else { %>
+    <a href="/login" class="link-inherit">Login</a>
+  <% } %>
+</div>

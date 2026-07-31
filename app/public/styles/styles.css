@@ -1,0 +1,458 @@
+/* ==========================================================================
+   BASE HTML TAGS
+   ========================================================================== */
+
+* {
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: #1a1a1a;
+    color:      #e0e0e0;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+thead{
+    background:#35322f;
+    position:sticky;
+    top:0;
+}
+
+thead th{
+    text-align:left;
+    font-weight:normal;
+    color:#b8b8b8;
+    padding:14px 20px;
+}
+
+tbody{
+
+    display:block;
+    overflow-y:auto;
+    height:calc(100vh - 170px);
+}
+
+thead,
+tbody tr{
+    display:table;
+    width:100%;
+    table-layout:fixed;
+}
+
+tbody tr{
+    transition:.15s;
+}
+
+tbody tr:hover{
+    background:#3b3835;
+}
+
+tbody td{
+    padding:14px 20px;
+    border-bottom:1px solid #3b3b3b;
+    color:#d5d5d5;
+}
+
+.submit {
+    background: #2c73b8;
+    border: none;
+    border-radius: 4px;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 10px;
+    padding: 10px 12px;
+}
+
+.submit:hover {
+    background: #2560a0;
+}
+
+/* ==========================================================================
+   NAVBAR & NAVIGATION (MENU)
+   ========================================================================== */
+
+.navbar {
+    align-items: center;
+    background: #2a2a2a;
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 30px;
+}
+
+.left-group {
+    align-items: center;
+    display: flex;
+    gap: 30px;
+}
+
+.right-group {
+    align-items: center;
+    color: #cccccc;
+    display: flex;
+    font-size: 16px;
+    gap: 12px;
+}
+
+.right-group .divider {
+    color: #808080;
+}
+
+.right-group .current-user {
+    color: #e0e0e0;
+    font-weight: bold;
+}
+
+.link-button {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: inherit;
+    padding: 0;
+    text-decoration: none;
+}
+
+.link-button:hover {
+    color: #2c73b8;
+}
+
+.logo {
+    color: #aaaaaa;
+    font-size: 32px;
+    font-weight: 300;
+}
+
+.menu {
+    display: flex;
+    gap: 25px;
+    font-size: 18px;
+    list-style: none;
+    z-index: 1000;
+}
+
+.menu li {
+    color: #cccccc;
+    cursor: pointer;
+    padding: 10px 15px;
+    position: relative;
+    z-index: 1000;
+}
+
+.dropdown:hover {
+    background: #3a3a3a;
+    border-left: 3px solid #2c73b8;
+}
+
+.dropdown-content {
+    background: #f7f7f7;
+    border-left: 3px solid #2c73b8;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    display: none;
+    left: -3px;
+    list-style: none;
+    padding: 5px 0;
+    position: absolute;
+    top: 100%;
+    width: 260px;
+    z-index: 1000;
+}
+
+.dropdown::after {
+    content: "";
+    height: 10px;
+    left: -3px;
+    position: absolute;
+    top: 100%;
+    width: calc(100% + 3px);
+}
+
+.dropdown-content li {
+    color: #444;
+    font-size: 20px;
+    padding: 15px 20px;
+    z-index: 1000;
+}
+
+.dropdown-content li:hover {
+    background: #eaeaea;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+
+/* ==========================================================================
+   LAYOUT & CONTAINERS
+   ========================================================================== */
+
+.layout-main {
+   display: flex;
+   flex-direction: column;
+   flex: 1;
+   overflow: auto;
+}
+.layout-single{
+    flex:1;
+    display:grid;
+    grid-template-columns:1fr;
+    padding:16px;
+    overflow:hidden;
+}
+.layout-double {
+    display: grid;
+    grid-template-columns: minmax(500px, 1fr) 280px;
+    gap: 16px;
+    padding: 16px;
+}
+.layout-three{
+    display:grid;
+    grid-template-columns:
+        280px
+        minmax(500px,1fr)
+        280px;
+    gap:16px;
+    padding:16px;
+}
+
+.full-panel{
+    overflow:hidden;
+}
+
+.left-panel,
+.right-panel{
+    background:#2a2a2a;
+    border-radius:8px;
+    border:1px solid #383838;
+}
+
+.center-panel{
+    overflow:hidden;
+}
+
+.card{
+    height:100%;
+    background:#2b2927;
+    border-radius:8px;
+    border:1px solid #3b3b3b;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+}
+
+.content{
+    flex:1;
+    overflow:auto;
+    padding:24px;
+    color:#ddd;
+}
+
+.full-panel .card{
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    background:#2b2927;
+    border:1px solid #3b3b3b;
+    border-radius:8px;
+    overflow:hidden;
+}
+
+.tabs{
+    display:flex;
+    background:#302e2b;
+    border-bottom:1px solid #444;
+}
+
+.tab{
+    padding:14px 24px;
+    color:#aaa;
+    cursor:pointer;
+}
+
+.tab.active{
+    color:#f2f2f2;
+    border-bottom:3px solid #d48b2d;
+}
+
+.table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+::-webkit-scrollbar{
+    width:8px;
+}
+
+::-webkit-scrollbar-thumb{
+    background:#555;
+    border-radius:8px;
+}
+
+::-webkit-scrollbar-track{
+    background:#2a2a2a;
+}
+
+@media (max-width:1200px){
+    .layout{
+        grid-template-columns:
+            220px
+            1fr;
+    }
+
+    .right-panel{
+        display:none;
+    }
+
+}
+
+@media (max-width:850px){
+    .layout{
+        grid-template-columns:1fr;
+    }
+    .left-panel{
+        display:none;
+    }
+}
+
+
+/* ==========================================================================
+   AUTH / LOGIN
+   ========================================================================== */
+
+.auth-page {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    min-height: calc(100vh - 100px);
+    padding: 20px;
+}
+
+.auth-card {
+    background: #2a2a2a;
+    border: 1px solid #808080;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.4);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 32px;
+    width: 100%;
+    max-width: 360px;
+}
+
+.auth-card-title {
+    color: #e0e0e0;
+    font-size: 24px;
+    font-weight: 300;
+}
+
+.auth-card-error {
+    background: rgba(217, 83, 79, 0.15);
+    border: 1px solid #d9534f;
+    border-radius: 4px;
+    color: #d9534f;
+    padding: 10px 14px;
+}
+
+.auth-card-hint {
+    color: #aaaaaa;
+    font-size: 14px;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.auth-form label {
+    color: #cccccc;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.auth-form input {
+    background: #1a1a1a;
+    border: 1px solid #808080;
+    border-radius: 4px;
+    color: #e0e0e0;
+    font-size: 16px;
+    padding: 10px 12px;
+}
+
+.auth-form input:focus {
+    border-color: #2c73b8;
+    outline: none;
+}
+
+
+/* ==========================================================================
+   ERROR MODULE
+   ========================================================================== */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: #2a2a2a;
+    z-index: 9998;
+}
+
+.error-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 400px;
+    min-height: 200px;
+    max-width: 80vw;
+
+    background: #2a2a2a;
+    border-radius: 8px;
+    padding: 24px;
+    border: 1px solid #808080;
+    box-shadow: 0 10px 40px rgba(0,0,0,.4);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.error-modal h2 {
+    margin: 0;
+    color: silver;
+}
+
+.error-modal button {
+    align-self: flex-end;
+    padding: 8px 18px;
+    cursor: pointer;
+}
+
+/* Choice modal (see choice-modal.js) reuses .overlay/.error-modal above for
+   its look, adding just the option-list layout on top. */
+.choice-modal-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.choice-modal-option {
+    padding: 8px 14px;
+    text-align: left;
+    cursor: pointer;
+}
+
+/* !important so this utility always wins over component `display` rules
+   (e.g. .error-modal, .analysis-panel) regardless of source order. */
+.hidden {
+    display: none !important;
+}
+

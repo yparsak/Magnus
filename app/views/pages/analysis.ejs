@@ -1,0 +1,26 @@
+  <div class="layout-main">
+    <div class="layout-three">
+      <aside class="left-panel">Analysis
+      </aside>
+      <main class="center-column">
+        <div class="board-wrap">
+          <div id="board" class="board-container"></div>
+        </div>
+      </main>
+      <aside class="right-panel">
+        <div class="analysis-panel">
+          <a href="#" id="linkBackToEditor" class="editor-link">Board editor</a>
+          <div id="moveList" class="move-list"></div>
+        </div>
+      </aside>
+    </div>
+    <div class="fen-row">
+      <input type="text" id="fenInput" class="editor-text-input fen-input" spellcheck="false" readonly>
+    </div>
+  </div>
+
+  <script src="/js/board-annotations.js"></script>
+  <script src="/js/move-tree.js"></script>
+  <script src="/js/move-tree-view.js"></script>
+  <script src="/js/choice-modal.js"></script>
+  <script src="/js/analysis.chess.js"></script>

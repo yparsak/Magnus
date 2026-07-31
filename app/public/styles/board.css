@@ -1,0 +1,297 @@
+/* ==========================================================================
+   CHESSBOARD.JS BASE STYLES (chessboard-1.0.0)
+   ========================================================================== */
+
+.board-b72b1 {
+    border: 2px solid #3b3b3b;
+    box-sizing: content-box;
+}
+
+.square-55d63 {
+    float: left;
+    position: relative;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.white-1e1d7 {
+    background: #f0d9b5;
+    color: #b58863;
+}
+
+.black-3c85d {
+    background: #b58863;
+    color: #f0d9b5;
+}
+
+.highlight1-32417,
+.highlight2-9c5d2 {
+    box-shadow: inset 0 0 3px 3px #ffff00;
+}
+
+.notation-322f9 {
+    cursor: default;
+    font-size: 12px;
+    position: absolute;
+}
+
+.alpha-d2270 {
+    bottom: 1px;
+    right: 3px;
+}
+
+.numeric-fc462 {
+    top: 2px;
+    left: 2px;
+}
+
+.piece-417db {
+    position: absolute;
+    z-index: 100;
+    transition: none;
+}
+
+.clearfix-7da63 {
+    clear: both;
+}
+
+.spare-pieces-7492f {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    background: #666666;
+}
+
+.spare-pieces-top-4028b {
+    margin-bottom: 8px;
+}
+
+.spare-pieces-bottom-ae20f {
+    margin-top: 8px;
+}
+
+/* chessboard.js positions on-board pieces absolutely for its drag/snap
+   animations, but relies on the browser's static-position layout to lay
+   spare pieces out side by side. .piece-417db's blanket `position: absolute`
+   (with no top/left set) collapses the spare-piece rows on top of each
+   other -- put those images back in normal flow inside the flex rows above.
+   chessboard.js drags a separate cloned/absolutely-positioned "drag ghost"
+   element, not the spare-piece <img> itself, so this is safe for dragging. */
+.spare-pieces-top-4028b .piece-417db,
+.spare-pieces-bottom-ae20f .piece-417db {
+    position: relative;
+}
+
+div[class*="spare-pieces-"] {
+    border-radius: 10px;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* ==========================================================================
+   BOARD EDITOR
+   ========================================================================== */
+
+.center-column {
+    display: flex;
+    justify-content: center;
+}
+
+.board-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+}
+
+/* Overlay for annotation arrows/circles (see board-annotations.js). Sits
+   above pieces (z-index: 100) so drawings stay visible over them, but never
+   intercepts pointer events -- the drawing module listens on #board itself. */
+.board-annotations-layer {
+    height: 100%;
+    left: 0;
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    z-index: 150;
+}
+
+.board-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.edit-tool-btn {
+    align-items: center;
+    border: 1px solid #3b3b3b;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    padding: 8px;
+    width: 50px;
+}
+
+.edit-tool-btn img {
+    height: 53px;
+    width: 53x;
+}
+
+.edit-tool-btn.active {
+    background: #2c73b8;
+    border-color: #2c73b8;
+}
+
+.editor-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    overflow-y: auto;
+    padding: 18px;
+}
+
+.editor-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.editor-group-title {
+    color: #aaaaaa;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.editor-select,
+.editor-text-input {
+    background: #1a1a1a;
+    border: 1px solid #808080;
+    border-radius: 4px;
+    color: #e0e0e0;
+    font-size: 14px;
+    padding: 8px 10px;
+}
+
+.castling-grid {
+    color: #cccccc;
+    display: grid;
+    font-size: 14px;
+    gap: 8px;
+    grid-template-columns: 1fr 1fr;
+}
+
+.castling-grid label {
+    align-items: center;
+    display: flex;
+    gap: 6px;
+}
+
+.set-board-row {
+    display: flex;
+    gap: 8px;
+}
+
+.set-board-row .editor-text-input {
+    flex: 1;
+}
+
+.editor-links {
+    border-top: 1px solid #3b3b3b;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 14px;
+}
+
+.editor-link {
+    color: #2c73b8;
+    cursor: pointer;
+}
+
+.editor-link:hover {
+    text-decoration: underline;
+}
+
+.fen-row {
+    padding: 0 16px 16px;
+}
+
+.fen-input {
+    width: 100%;
+}
+
+.analysis-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.move-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.move-row {
+    display: flex;
+    gap: 8px;
+    padding: 2px 4px;
+}
+
+.move-number {
+    color: #808080;
+    width: 28px;
+}
+
+.move-san {
+    border-radius: 3px;
+    color: #d5d5d5;
+    cursor: pointer;
+    padding: 2px 6px;
+}
+
+.move-san:hover {
+    background: #3b3835;
+}
+
+.move-san.active-move {
+    background: #2c73b8;
+    color: #ffffff;
+}
+
+/* Side lines (variations): rendered as their own row directly under the
+   move they branch from, indented and muted so the main line stays the
+   visual focus. Nested variations reuse this same row (extra parens
+   appended inline), so no deeper indentation is needed. */
+.variation-row {
+    flex-wrap: wrap;
+    margin-left: 18px;
+    row-gap: 2px;
+}
+
+.variation-row .move-number,
+.variation-paren {
+    color: #808080;
+}
+
+.variation-row .move-san {
+    color: #9a9a9a;
+    font-style: italic;
+}
+
+.variation-row .move-san.active-move {
+    background: #2c73b8;
+    color: #ffffff;
+    font-style: normal;
+}
+
+@media (max-width: 900px) {
+    .layout-double {
+        grid-template-columns: 1fr;
+    }
+}
+
+

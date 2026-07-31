@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <%- include('partials/header', { title: typeof title !== 'undefined' ? title : 'Magnus' }) %>
+<body>
+  <header class="navbar">
+    <div class="left-group">
+      <%- include('partials/logo') %>
+      <% if (typeof showNav === 'undefined' || showNav) { %>
+        <%- include('partials/nav', { mode: typeof mode !== 'undefined' ? mode : null }) %>
+      <% } %>
+    </div>
+    <%- include('partials/header_right') %>
+  </header>
+
+  <%- include(content, locals) %>
+
+  <% if (typeof pageData !== 'undefined' && pageData) { %>
+  <script>
+    window.MAGNUS_PAGE_DATA = <%- JSON.stringify(pageData) %>;
+  </script>
+  <% } %>
+
+  <%- include('partials/error') %>
+
+</body>
+</html>
+   
