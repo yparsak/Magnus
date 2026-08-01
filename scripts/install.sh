@@ -1,90 +1,67 @@
 #!/bin/bash
 
-  # -- Functions -----
-  check_password() {
-    local pwd=$1
-    # Check length (>8), numbers, uppercase, and special characters
-    if [[ ${#pwd} -le 8 ]] || [[ ! "$pwd" =~ [0-9] ]] || \
-       [[ ! "$pwd" =~ [A-Z] ]] || [[ ! "$pwd" =~ ['!@#$%^&*()_+'] ]]; then
-        return 1
-    fi
-    return 0
-  }  
-
-  # -- OS Detection --
-  if [ -f /etc/os-release ]; then
-    . /etc/os-release
-    OS=$ID
-  else
-    echo "Could not detect OS. This script only supports Debian/Ubuntu."
-    exit 1
-  fi
-  echo "Detected OS: $OS"
-
-  # -- Functions -----
-  check_password() {
-    local pwd=$1
-    # Check length (>8), numbers, uppercase, and special characters
-    if [[ ${#pwd} -le 8 ]] || [[ ! "$pwd" =~ [0-9] ]] || \
-       [[ ! "$pwd" =~ [A-Z] ]] || [[ ! "$pwd" =~ ['!@#$%^&*()_+'] ]]; then
-        return 1
-    fi
-    return 0
-  }  
-
-  # -- OS Detection --
-  if [ -f /etc/os-release ]; then
-    . /etc/os-release
-    OS=$ID
-  else
-    echo "Could not detect OS. This script only supports Debian/Ubuntu."
-    exit 1
-  fi
-  echo "Detected OS: $OS"
-
-  MYHOME="/home/$SUDO_USER"
-
-  # --
   APP_NAME="Magnus"
   APP_OWNER="yparsak"
   ENGINE_NAME="Stockfish"
 
-  # --
   GIT_REPO="https://github.com"
   GIT_API="https://api.github.com/repos"
 
-  # --
-  APP_REPO_URL="$GIT_REPO/${APP_OWNER}/${APP_NAME}/${APP_NAME}.git"
-  APP_API_URL="$GIT_API/${APP_OWNER}/${APP_NAME}/releases/latest"
-  # --
-  ENGINE_REPO_URL="$GIT_REPO/official-${ENGINE_NAME,,}/$ENGINE_NAME"
-  ENGINE_API_URL="$GIT_API/official-${ENGINE_NAME,,}/$ENGINE_NAME/releases/latest"
-
+  MYHOME="/home/$SUDO_USER"
   SRC_PATH="$MYHOME/src"
   APP_PATH="$SRC_PATH/$APP_NAME"
   ENGINE_SRC_PATH="$SRC_PATH/$ENGINE_NAME"
   ENV_FILE="$APP_PATH/scripts/.env"
 
-  USRLOCALBIN="/usr/local/bin/"
-  LOGFILE="/tmp/Magnus.process.log"
+  APP_REPO_URL="$GIT_REPO/${APP_OWNER}/${APP_NAME}/${APP_NAME}.git"
+  APP_API_URL="$GIT_API/${APP_OWNER}/${APP_NAME}/releases/latest"
 
-  # -- Required Packages
+  ENGINE_REPO_URL="$GIT_REPO/official-${ENGINE_NAME,,}/$ENGINE_NAME"
+  ENGINE_API_URL="$GIT_API/official-${ENGINE_NAME,,}/$ENGINE_NAME/releases/latest"
+
+  USRLOCALBIN="/usr/local/bin/"
+  LOGFILE="/tmp/${APP_NAME}.log"
+
+  SF_PATH="$SRC_PATH/$ENGINE_NAME"
+
+  if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    OS=$ID
+  else
+    echo "Could not detect OS. This script only supports Debian/Ubuntu."
+    exit 1
+  fi
+  echo "Detected OS: $OS"
+
+  if [[ $EUID -ne 0 ]]; then
+    echo "Error: This script requires root privileges. Please use 'sudo'."
+    exit 1
+  fi
+  if [[ -z "$SUDO_USER" || "$SUDO_USER" == "root" ]]; then
+    echo "Warn: Running directly as root is discouraged."
+    echo "Please run this as a regular user using 'sudo'."
+    exit 1
+  fi
+
+  # -- Download Required Packages
   REQUIRED_PKGS=("build-essential" "nodejs" "npm" "curl" "mariadb-server" "zstd")
   MISSING_PKGS=()
+
+  echo "Checking required packages"
 
   # -- detect missing packages
   for PKG in "${REQUIRED_PKGS[@]}"; do
     if dpkg-query -W -f='${Status}' "$PKG" 2>/dev/null | grep -q "ok installed"; then
-      echo "[>] $PKG is present."
+      echo "  [>] $PKG is present."
     else
-      echo "[X] $PKG is missing."
+      echo "  [X] $PKG is missing."
       MISSING_PKGS+=("$PKG") 
     fi
   done  
 
-  # -- install missing packages
+  # -- Install Missing Packages
   if [ ${#MISSING_PKGS[@]} -eq 0 ]; then
-    echo "[>] All required packages are already installed. Nothing to do!"
+    echo "All required packages are already installed. Nothing to do!"
   else
     echo "Installing missing packages"
 
@@ -127,23 +104,23 @@
   if [ ${#MISSING_PKGS[@]} -ne 0 ]; then
     for PKG in "${REQUIRED_PKGS[@]}"; do
       if dpkg-query -W -f='${Status}' "$PKG" 2>/dev/null | grep -q "ok installed"; then
-        echo "[>] $PKG is present."
+        echo "  [>] $PKG is present."
       else
-        echo "[X] $PKG is missing."
+        echo "  [X] $PKG is missing."
         exit 1
       fi
     done
-  fi
+  fi  
 
-  # -- Set directories
+  # -- Setting up directories
   sudo mkdir -p "${SRC_PATH}" 
   sudo mkdir -p "${ENGINE_SRC_PATH}"
   sudo chown "$SUDO_USER:$SUDO_USER" ${SRC_PATH}
   sudo chown "$SUDO_USER:$SUDO_USER" ${ENGINE_SRC_PATH}
-  
-  # -- Install the App
+
   if [ ! -d "$APP_PATH" ]; then
 
+    # -- Installing the App
     sudo mkdir -p "${APP_PATH}"
     sudo chown "$SUDO_USER:$SUDO_USER" ${APP_PATH}
 
@@ -155,7 +132,7 @@
       echo "Error: Could not parse the download URL. Check your connection or GitHub API limits."
       exit 1
     fi
-    echo "$DOWNLOAD_URL $TAG_NAME"
+    echo "Downloading $DOWNLOAD_URL Tag: $TAG_NAME"
 
     FILENAME="$APP_NAME-$TAG_NAME.tar.gz"
     FULL_PATH="$APP_PATH/$FILENAME" 
@@ -170,7 +147,8 @@
 
       if [ $? -eq 0 ]; then
         echo "Extraction successful. Removing archive..."
-        rm "$FULL_PATH"    
+        rm "$FULL_PATH" 
+        echo "Version: $TAG_NAME" > ${APP_PATH}/version
       else
         echo "Error: Extraction failed."
         exit 1 
@@ -181,35 +159,43 @@
     fi
   fi
 
+  # -- Install Engine
+  sudo mkdir -p "$SF_PATH"
 
+  echo "Getting ${ENGINE_NAME} Latest Tag info"
 
+  LATEST_TAG=$(curl -s $ENGINE_API_URL | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+  if [ -z ${LATEST_TAG} ]; then
+    echo "Error: Unable to determine ${ENGINE_NAME} latest tag. Exiting."
+    exit 1
+  fi
 
+  TARGET_DIR="${SF_PATH}/${LATEST_TAG}"
+  if [ -d ${TARGET_DIR} ]; then
+    echo "${ENGINE_NAME} ${LATEST_TAG} already found. Skipping install."
+    exit 0
+  fi
 
+  echo "Downloading ${ENGINE_NAME} Latest Tag: ${LATEST_TAG}"
 
+  curl -L -o "${SF_PATH}/${ENGINE_NAME}-${LATEST_TAG}.tar.gz" "${ENGINE_REPO_URL}/archive/refs/tags/${LATEST_TAG}.tar.gz"
 
+  sudo mkdir -p ${TARGET_DIR}
+  tar -xzf "${SF_PATH}/${ENGINE_NAME}-${LATEST_TAG}.tar.gz" -C "$TARGET_DIR" --strip-components=1
 
+  SYMLINK="${SF_PATH}/current_version"
+  sudo rm -f ${SYMLINK}
 
+  ln -sf "${TARGET_DIR}" "$SYMLINK"
+  sudo chown "$SUDO_USER:$SUDO_USER" "$SYMLINK"
 
+  echo "Installing ${ENGINE_NAME} Tag: ${LATEST_TAG}"
+  cd ${TARGET_DIR}/src/ && make -j profile-build ARCH=native
 
+  sudo chown -R "$SUDO_USER:$SUDO_USER" "${SF_PATH}"
+  
+  cp ${TARGET_DIR}/src/stockfish /usr/local/bin/.
 
-
-
-
-
-
-
+  echo "Done"
 
  
-
-
-
-
-
-
-
-
-
- 
-
-
-
