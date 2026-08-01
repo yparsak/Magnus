@@ -2,8 +2,7 @@
 --
 CREATE TABLE IF NOT EXISTS platforms (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  name varchar(20) NOT NULL,
-  PRIMARY KEY (`id`)
+  name varchar(20) NOT NULL
 );
 
 --
@@ -23,7 +22,6 @@ CREATE TABLE IF NOT EXISTS accounts (
   platform_id int(11) NOT NULL,
   accountname varchar(20) NOT NULL,
   last_scan timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
   KEY `fk_user` (`user_id`),
   KEY `fk_platform` (`platform_id`),
   CONSTRAINT `fk_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
@@ -32,7 +30,7 @@ CREATE TABLE IF NOT EXISTS accounts (
 
 --
 CREATE TABLE IF NOT EXISTS user_games (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `account_id` int(11) NOT NULL,
   `platform_id` int(11) NOT NULL,
   `game_id` varchar(255) NOT NULL,
@@ -49,7 +47,6 @@ CREATE TABLE IF NOT EXISTS user_games (
   `black_elo` smallint(6) DEFAULT NULL,
   `eval_min` decimal(10,2) DEFAULT NULL,
   `eval_max` decimal(10,2) DEFAULT NULL,
-  PRIMARY KEY (`id`),
   KEY `fk_account` (`account_id`),
   KEY `fk_platform` (`platform_id`),
   KEY `fk_book` (`book_id`),
@@ -60,7 +57,7 @@ CREATE TABLE IF NOT EXISTS user_games (
 
 --
 CREATE TABLE IF NOT EXISTS game_moves (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `game_id` int(11) NOT NULL,
   `fen` varchar(255) NOT NULL,
   `short_notation` varchar(10) NOT NULL,
@@ -71,7 +68,6 @@ CREATE TABLE IF NOT EXISTS game_moves (
   `mate` tinyint(1) DEFAULT NULL,
   `loss` tinyint(1) DEFAULT NULL,
   `best_eval` varchar(20) DEFAULT NULL,
-  PRIMARY KEY (`id`),
   KEY `fk_game` (`game_id`),
   CONSTRAINT `fk_game` FOREIGN KEY (`game_id`) REFERENCES `player_games` (`id`) 
 );
@@ -99,18 +95,16 @@ CREATE TABLE IF NOT EXISTS chess_puzzles (
 --
 CREATE TABLE IF NOT EXISTS challenge_book (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  fen varchar(255) NOT NULL,
-  PRIMARY KEY (`id`)
+  fen varchar(255) NOT NULL
 );
 
 --
 CREATE TABLE IF NOT EXISTS opening_book (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `eco` varchar(5) NOT NULL,
   `name` varchar(255) DEFAULT NULL,
   `fen` varchar(100) NOT NULL,
   `pgn` text DEFAULT NULL,
-  PRIMARY KEY (`id`),
   KEY `idx_fen` (`fen`)
 );
 
