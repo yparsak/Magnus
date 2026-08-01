@@ -228,6 +228,7 @@
   echo "DB_HOST=localhost"                              >> "${APP_DOTENV}"
   echo "DB_PORT=${DB_PORT}"                             >> "${APP_DOTENV}"
   echo "DB_USER=${SUDO_USER,,}"                         >> "${APP_DOTENV}"
+  echo "DB_NAME=${APP_NAME}"                            >> "${APP_DOTENV}"
   echo "DB_PASSWORD=${DB_PASSWORD}"                     >> "${APP_DOTENV}"
   echo "USER_AGENT=${USER_AGENT}"                       >> "${APP_DOTENV}"
   echo "ENGINE_SRC_PATH=${ENGINE_SRC_PATH}"             >> "${APP_DOTENV}"
