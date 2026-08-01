@@ -29,6 +29,16 @@ CREATE TABLE IF NOT EXISTS accounts (
 ); 
 
 --
+CREATE TABLE IF NOT EXISTS opening_book (
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `eco` varchar(5) NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `fen` varchar(100) NOT NULL,
+  `pgn` text DEFAULT NULL,
+  KEY `idx_fen` (`fen`)
+);
+
+--
 CREATE TABLE IF NOT EXISTS user_games (
   `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `account_id` int(11) NOT NULL,
@@ -69,24 +79,23 @@ CREATE TABLE IF NOT EXISTS game_moves (
   `loss` tinyint(1) DEFAULT NULL,
   `best_eval` varchar(20) DEFAULT NULL,
   KEY `fk_game` (`game_id`),
-  CONSTRAINT `fk_game` FOREIGN KEY (`game_id`) REFERENCES `player_games` (`id`) 
+  CONSTRAINT `fk_game` FOREIGN KEY (`game_id`) REFERENCES `user_games` (`id`) 
 );
 
 --
 CREATE TABLE IF NOT EXISTS chess_puzzles (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  PuzzleId varchar(50) NOT NULL,
-  FEN varchar(255) NOT NULL,
-  Moves text NOT NULL,
-  NotationType enum('UCI','SAN') NOT NULL DEFAULT 'UCI',
-  Rating int(11) DEFAULT NULL,
-  RatingDeviation int(11) DEFAULT NULL,
-  Popularity smallint(6) DEFAULT NULL,
-  NbPlays int(11) DEFAULT 0,
-  Themes varchar(500) DEFAULT NULL,
-  SourceUrl varchar(255) DEFAULT NULL,
-  SourceDescription varchar(255) DEFAULT NULL,
-  OpeningTags varchar(255) DEFAULT NULL,
+  `PuzzleId` varchar(50) NOT NULL,
+  `FEN` varchar(255) NOT NULL,
+  `Moves` text NOT NULL,
+  `NotationType` enum('UCI','SAN') NOT NULL DEFAULT 'UCI',
+  `Rating` int(11) DEFAULT NULL,
+  `RatingDeviation` int(11) DEFAULT NULL,
+  `Popularity` smallint(6) DEFAULT NULL,
+  `NbPlays` int(11) DEFAULT 0,
+  `Themes` varchar(500) DEFAULT NULL,
+  `SourceUrl` varchar(255) DEFAULT NULL,
+  `SourceDescription` varchar(255) DEFAULT NULL,
+  `OpeningTags` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`PuzzleId`),
   KEY `idx_rating` (`Rating`),
   KEY `idx_notation` (`NotationType`)
@@ -97,15 +106,4 @@ CREATE TABLE IF NOT EXISTS challenge_book (
   id INT AUTO_INCREMENT PRIMARY KEY,
   fen varchar(255) NOT NULL
 );
-
---
-CREATE TABLE IF NOT EXISTS opening_book (
-  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `eco` varchar(5) NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `fen` varchar(100) NOT NULL,
-  `pgn` text DEFAULT NULL,
-  KEY `idx_fen` (`fen`)
-);
-
 
