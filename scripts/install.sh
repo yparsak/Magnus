@@ -10,6 +10,13 @@
     fi
     return 0
   }
+  generate_secret() {
+    if command -v openssl >/dev/null 2>&1; then
+      openssl rand -hex 32
+    else
+      head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n'
+    fi
+  }
   # -----------------------------------------------------------------------
 
   APP_NAME="Magnus"
@@ -224,6 +231,8 @@
     done
   fi
 
+  SECRET="$(generate_secret)"
+
   echo "PORT=${PORT}"                                    > "${APP_DOTENV}"
   echo "DB_HOST=localhost"                              >> "${APP_DOTENV}"
   echo "DB_PORT=${DB_PORT}"                             >> "${APP_DOTENV}"
@@ -234,6 +243,8 @@
   echo "ENGINE_SRC_PATH=${ENGINE_SRC_PATH}"             >> "${APP_DOTENV}"
   echo "ENGINE_PATH=/usr/local/bin/${ENGINE_NAME,,}"    >> "${APP_DOTENV}"
   echo "LOGFILE=${LOGFILE}"                             >> "${APP_DOTENV}"
+  echo "USE_AUTH=1"                                     >> "${APP_DOTENV}"
+  echo "SESSION_SECRET=${SECRET}"                       >> "${APP_DOTENV}"  
 
   cp ${APP_DOTENV} ${SCR_DOTENV}
 
