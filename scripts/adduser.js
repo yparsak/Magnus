@@ -1,5 +1,5 @@
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', 'app', '.env') });
+require('dotenv').config({ path: path.join(__dirname, '..', 'scripts', '.env') });
 
 const bcrypt = require('bcryptjs');
 const mysql = require('mysql2/promise');

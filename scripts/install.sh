@@ -263,8 +263,11 @@
   cd $APP_PATH/scripts && make
 
   echo "Adding user to database"
-  node ${APP_PATH}/scripts/adduser.js
+  cd $APP_PATH/scripts && node adduser.js
 
   ${APP_PATH}/scripts/install_engine.sh
+
+  sudo ln -sf ${ENGINE_SRC_PATH}/current_version /usr/local/bin/${ENGINE_NAME,,}
+  sudo chown "$SUDO_USER:$SUDO_USER" /usr/local/bin/${ENGINE_NAME,,}
 
   echo "Done"

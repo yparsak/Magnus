@@ -1,5 +1,10 @@
 #!/bin/bash
 
+  USERID="${USER}"
+  if [[ "${USERID}" == "root" ]]; then
+    USERID="${SUDO_USER}" 
+  fi
+
   GIT_HUB_API="https://api.github.com/repos/official-stockfish"
   ENGINE_NAME="Stockfish"
   TAG_URL="${GIT_HUB_API}/${ENGINE_NAME}/releases/latest"
@@ -7,9 +12,9 @@
 
   # --
   APP_NAME="Magnus"
-  APP_PATH="/home/${USER}/src/${APP_NAME}"
+  APP_PATH="/home/${USERID}/src/${APP_NAME}"
 
-  ENGINE_PATH="/home/${USER}/src/${ENGINE_NAME}"
+  ENGINE_PATH="/home/${USERID}/src/${ENGINE_NAME}"
   mkdir -p ${ENGINE_PATH}
 
   LATEST_TAG=$(curl -s ${TAG_URL} | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
@@ -36,11 +41,10 @@
   rm -f ${SYMLINK}
 
   ln -sf "${TARGET_DIR}" "$SYMLINK"
-  chown "$USER:$USER" "$SYMLINK"
+  chown "$USERID:$USERID" "$SYMLINK"
 
   cd ${TARGET_DIR}/src/ && make -j profile-build ARCH=native
 
-  sudo chown -R "$USER:$USER" "${ENGINE_PATH}"
+  sudo chown -R "$USERID:$USERID" "${ENGINE_PATH}"
 
-  cp ${TARGET_DIR}/src/${ENGINE_NAME,,} /usr/local/bin/.
 
