@@ -243,8 +243,7 @@
   echo "ENGINE_SRC_PATH=${ENGINE_SRC_PATH}"             >> "${APP_DOTENV}"
   echo "ENGINE_PATH=/usr/local/bin/${ENGINE_NAME,,}"    >> "${APP_DOTENV}"
   echo "LOGFILE=${LOGFILE}"                             >> "${APP_DOTENV}"
-  echo "USE_AUTH=1"                                     >> "${APP_DOTENV}"
-  echo "SESSION_SECRET=${SECRET}"                       >> "${APP_DOTENV}"  
+  echo "SESSION_SECRET=${SECRET}"                       >> "${APP_DOTENV}"
 
   cp ${APP_DOTENV} ${SCR_DOTENV}
 

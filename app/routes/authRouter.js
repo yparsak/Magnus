@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const { pool } = require('../lib/db');
 
 const { renderPage } = require('../lib/renderPage');
-const { isAuthEnabled } = require('../lib/auth');
 
 const USERNAME_MIN_LENGTH = 3;
 const USERNAME_MAX_LENGTH = 50;
@@ -21,7 +20,6 @@ function showLoginForm(res, options = {}) {
 
   res.status(status);
   renderPage(res, 'login', 'login', {
-    authEnabled: isAuthEnabled(),
     errorMessage
   }, { title: 'Login' });
 }
@@ -35,7 +33,6 @@ router.get('/login', (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
-  const authEnabled = isAuthEnabled();
   const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
 
   if (!isValidUsername(username)) {
@@ -46,9 +43,7 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const user = authEnabled
-      ? await authenticateWithPassword(username, req.body.password)
-      : await authenticateWithoutPassword(username);
+    const user = await authenticateWithPassword(username, req.body.password);
 
     if (!user) {
       return showLoginForm(res, {
@@ -78,7 +73,7 @@ router.post('/logout', (req, res) => {
   });
 });
 
-// USE_AUTH enabled: real credential check against the stored bcrypt hash.
+// Real credential check against the stored bcrypt hash.
 async function authenticateWithPassword(username, password) {
   if (typeof password !== 'string' || password.length < PASSWORD_MIN_LENGTH) {
     return null;
@@ -95,25 +90,6 @@ async function authenticateWithPassword(username, password) {
 
   const passwordMatches = await bcrypt.compare(password, user.password_hash);
   return passwordMatches ? user : null;
-}
-
-// USE_AUTH disabled: no password to check, just establish an identity.
-// Auto-provisions the user record on first use since there's no separate
-// sign-up flow in this mode.
-async function authenticateWithoutPassword(username) {
-  const [rows] = await pool.query(
-    'SELECT id, username FROM users WHERE username = ? LIMIT 1',
-    [username]
-  );
-  if (rows[0]) {
-    return rows[0];
-  }
-
-  const [result] = await pool.query(
-    'INSERT INTO users (username) VALUES (?)',
-    [username]
-  );
-  return { id: result.insertId, username };
 }
 
 module.exports = router;

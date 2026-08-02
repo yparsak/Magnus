@@ -1,19 +1,13 @@
 'use strict';
 
-// Auth is a cohesive domain concern (session state, gating, USE_AUTH toggle),
+// Auth is a cohesive domain concern (session state, gating),
 // so it gets its own module rather than living inline in magnus.js or a router.
 
-function isAuthEnabled() {
-  const value = String(process.env.USE_AUTH || '').trim().toUpperCase();
-  return value === '1' || value === 'TRUE';
-}
-
-// Makes the current session user (and the USE_AUTH mode) available to every
-// view via res.locals, so partials like header_right.ejs can render without
-// each router having to pass it in explicitly.
+// Makes the current session user available to every view via res.locals,
+// so partials like header_right.ejs can render without each router having
+// to pass it in explicitly.
 function attachCurrentUser(req, res, next) {
   res.locals.currentUser = (req.session && req.session.user) || null;
-  res.locals.authEnabled = isAuthEnabled();
   next();
 }
 
@@ -36,4 +30,4 @@ function requireAuth(req, res, next) {
   return res.redirect('/login');
 }
 
-module.exports = { isAuthEnabled, attachCurrentUser, requireAuth };
+module.exports = { attachCurrentUser, requireAuth };

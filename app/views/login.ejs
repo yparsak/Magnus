@@ -12,17 +12,11 @@
         <label for="username">Username</label>
         <input type="text" id="username" name="username" minlength="3" maxlength="50" autofocus required>
 
-        <% if (authEnabled) { %>
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" minlength="8" required>
-        <% } %>
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" minlength="8" required>
 
         <button type="submit" class="submit">Continue</button>
       </form>
-
-      <% if (!authEnabled) { %>
-        <p class="auth-card-hint">Authentication is disabled for this environment (USE_AUTH). Enter any username to continue -- no password needed.</p>
-      <% } %>
     </div>
   </main>
 <%- include('partials/footer') %>
