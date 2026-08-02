@@ -282,4 +282,8 @@
   sudo ln -sf ${ENGINE_SRC_PATH}/current_version /usr/local/bin/${ENGINE_NAME,,}
   sudo chown "$SUDO_USER:$SUDO_USER" /usr/local/bin/${ENGINE_NAME,,}
 
+  sudo ln -sf ${APP_PATH} ${APP_NAME}
+  sudo ln -sf ${APP_PATH}/scripts/${APP_NAME,,} /usr/local/bin/${APP_NAME,,}
+
   echo "Done"
+
