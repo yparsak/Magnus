@@ -11,7 +11,8 @@ function attachCurrentUser(req, res, next) {
   next();
 }
 
-// Gates everything mounted after it except the login/signup routes and static assets.
+// Gates everything mounted after it. Currently that's only /api -- /, /login,
+// /signup, /editor, /analysis, and static assets are all public.
 // API requests get a JSON 401 (an API consumer can't follow an HTML redirect),
 // page requests get redirected to the home page.
 function requireAuth(req, res, next) {

@@ -9,8 +9,12 @@ const { renderPage } = require('../lib/renderPage');
 const USERNAME_MIN_LENGTH = 3;
 const USERNAME_MAX_LENGTH = 50;
 const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_SPECIAL_CHARS = '!@#$%^&*()_+';
+const PASSWORD_SPECIAL_CHARS_REGEX = /[!@#$%^&*()_+]/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SIGNUP_LINK_TTL_HOURS = 24;
+const PASSWORD_FORMAT_MESSAGE = `Password must be more than ${PASSWORD_MIN_LENGTH} characters and include ` +
+  `a number, an uppercase letter, and one of the following special characters: ${PASSWORD_SPECIAL_CHARS}`;
 
 function isValidUsername(username) {
   return typeof username === 'string'
@@ -20,6 +24,16 @@ function isValidUsername(username) {
 
 function isValidEmail(email) {
   return typeof email === 'string' && EMAIL_REGEX.test(email.trim());
+}
+
+// Mirrors check_password() in scripts/install.sh character-for-character --
+// keep the two in sync if the policy ever changes.
+function isValidPassword(password) {
+  return typeof password === 'string'
+    && password.length > PASSWORD_MIN_LENGTH
+    && /[0-9]/.test(password)
+    && /[A-Z]/.test(password)
+    && PASSWORD_SPECIAL_CHARS_REGEX.test(password);
 }
 
 function showLoginForm(res, options = {}) {
@@ -86,7 +100,7 @@ router.post('/login', async (req, res) => {
 
 router.post('/logout', (req, res) => {
   req.session.destroy(() => {
-    res.redirect('/login');
+    res.redirect('/');
   });
 });
 
@@ -133,10 +147,10 @@ router.post('/signup', async (req, res) => {
     });
   }
 
-  if (password.length < PASSWORD_MIN_LENGTH) {
+  if (!isValidPassword(password)) {
     return showSignupForm(res, {
       status: 400,
-      errorMessage: `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
+      errorMessage: PASSWORD_FORMAT_MESSAGE,
       values
     });
   }

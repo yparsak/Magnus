@@ -19,7 +19,8 @@
           value="<%= typeof values !== 'undefined' ? values.email : '' %>">
 
         <label for="password">Password</label>
-        <input type="password" id="password" name="password" minlength="8" required>
+        <input type="password" id="password" name="password" minlength="9" required>
+        <p class="auth-card-hint" id="password-hint"></p>
 
         <button type="submit" class="submit" id="signup-submit">Continue</button>
       </form>

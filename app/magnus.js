@@ -32,11 +32,11 @@ app.use(session({
 app.use(attachCurrentUser);
 
 // -- Routes --
-app.use('/', authRouter);   // /login, /signup, /logout must stay reachable while unauthenticated
-app.use('/', indexRouter);  // home page is public
+app.use('/', authRouter);        // /login, /signup, /logout must stay reachable while unauthenticated
+app.use('/', indexRouter);       // home page is public
+app.use('/editor',editorRouter); // editor is viewable while unauthenticated
+app.use('/analysis',analysisRouter); // analysis is viewable while unauthenticated
 app.use(requireAuth);
-app.use('/editor',editorRouter);
-app.use('/analysis',analysisRouter);
 app.use('/api',   apiRouter);
 
 app.listen(PORT, () => {
