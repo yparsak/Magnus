@@ -11,9 +11,9 @@ function attachCurrentUser(req, res, next) {
   next();
 }
 
-// Gates everything mounted after it except the login routes and static assets.
+// Gates everything mounted after it except the login/signup routes and static assets.
 // API requests get a JSON 401 (an API consumer can't follow an HTML redirect),
-// page requests get redirected to the login page.
+// page requests get redirected to the home page.
 function requireAuth(req, res, next) {
   if (req.session && req.session.user) {
     return next();
@@ -27,7 +27,7 @@ function requireAuth(req, res, next) {
     });
   }
 
-  return res.redirect('/login');
+  return res.redirect('/');
 }
 
 module.exports = { attachCurrentUser, requireAuth };

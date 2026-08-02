@@ -32,9 +32,9 @@ app.use(session({
 app.use(attachCurrentUser);
 
 // -- Routes --
-app.use('/', authRouter);   // /login, /logout must stay reachable while unauthenticated
+app.use('/', authRouter);   // /login, /signup, /logout must stay reachable while unauthenticated
+app.use('/', indexRouter);  // home page is public
 app.use(requireAuth);
-app.use('/',      indexRouter);
 app.use('/editor',editorRouter);
 app.use('/analysis',analysisRouter);
 app.use('/api',   apiRouter);

@@ -11,8 +11,20 @@ CREATE TABLE IF NOT EXISTS users (
   name varchar(20) DEFAULT NULL,
   lastname varchar(20) DEFAULT NULL,
   username varchar(50) NOT NULL,
+  email varchar(255) DEFAULT NULL,
   password_hash varchar(255) DEFAULT NULL,
   UNIQUE KEY `uq_username` (`username`)
+);
+
+--
+CREATE TABLE IF NOT EXISTS SignUp (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  link_id varchar(64) NOT NULL,
+  username varchar(50) NOT NULL,
+  email varchar(255) NOT NULL,
+  password_hash varchar(255) NOT NULL,
+  created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uq_link_id` (`link_id`)
 );
 
 --
