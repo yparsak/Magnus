@@ -19,7 +19,7 @@ start() {
 stop () {
   local pid=$(get_magnus_pid)
   if [ -z "$pid" ]; then
-    echo "$name is not running."
+    echo "${APP_NAME} is not running."
     return
   fi
   echo "Stopping $name (PID: $pid)..."
