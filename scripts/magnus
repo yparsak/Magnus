@@ -1,7 +1,6 @@
 #!/bin/bash
 
 APP_NAME="Magnus"
-APP_JS="${APP_NAME,,}.js"
 
 get_magnus_pid() {
     pgrep -f "node ${APP_NAME,,}.js" | head -n 1

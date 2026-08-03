@@ -1,11 +1,29 @@
 
 --
+--
+--
+DROP TABLE IF EXISTS `platforms`;
 CREATE TABLE IF NOT EXISTS platforms (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name varchar(20) NOT NULL
 );
 
+-- Dumping data for table
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `platforms` WRITE;
+
+INSERT INTO `platforms` VALUES
+(1,'lichess.org'),
+(2,'chess.com');
+
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+
 --
+--
+--
+DROP TABLE IF EXISTS `users`;
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name varchar(20) DEFAULT NULL,
@@ -17,6 +35,9 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 --
+--
+--
+DROP TABLE IF EXISTS `SignUp`;
 CREATE TABLE IF NOT EXISTS SignUp (
   id INT AUTO_INCREMENT PRIMARY KEY,
   link_id varchar(64) NOT NULL,
@@ -28,6 +49,9 @@ CREATE TABLE IF NOT EXISTS SignUp (
 );
 
 --
+--
+--
+DROP TABLE IF EXISTS `accounts`;
 CREATE TABLE IF NOT EXISTS accounts (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id int(11) NOT NULL,
@@ -41,16 +65,9 @@ CREATE TABLE IF NOT EXISTS accounts (
 ); 
 
 --
-CREATE TABLE IF NOT EXISTS opening_book (
-  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `eco` varchar(5) NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `fen` varchar(100) NOT NULL,
-  `pgn` text DEFAULT NULL,
-  KEY `idx_fen` (`fen`)
-);
-
 --
+--
+DROP TABLE IF EXISTS `user_games`;
 CREATE TABLE IF NOT EXISTS user_games (
   `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `account_id` int(11) NOT NULL,
@@ -78,6 +95,9 @@ CREATE TABLE IF NOT EXISTS user_games (
 );
 
 --
+--
+--
+DROP TABLE IF EXISTS `game_moves`;
 CREATE TABLE IF NOT EXISTS game_moves (
   `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `game_id` int(11) NOT NULL,
@@ -95,6 +115,9 @@ CREATE TABLE IF NOT EXISTS game_moves (
 );
 
 --
+--
+--
+DROP TABLE IF EXISTS `chess_puzzles`;
 CREATE TABLE IF NOT EXISTS chess_puzzles (
   `PuzzleId` varchar(50) NOT NULL,
   `FEN` varchar(255) NOT NULL,
@@ -114,8 +137,12 @@ CREATE TABLE IF NOT EXISTS chess_puzzles (
 );
 
 --
+--
+--
+DROP TABLE IF EXISTS `challenge_book`;
 CREATE TABLE IF NOT EXISTS challenge_book (
   id INT AUTO_INCREMENT PRIMARY KEY,
   fen varchar(255) NOT NULL
 );
+
 
