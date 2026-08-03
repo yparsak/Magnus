@@ -33,6 +33,10 @@ case "$1" in
   stop)
     stop
     ;;
+  restart)
+    stop
+    start
+    ;;
   status)
     PID=$(get_magnus_pid)
     if [ -n "${PID}" ]; then
@@ -40,6 +44,9 @@ case "$1" in
     else
       echo "${APP_NAME}  is not running."
     fi
+    ;;
+  *)
+    echo "magnus {start, stop, restart, status}"
     ;;
 esac
 
