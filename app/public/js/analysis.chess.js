@@ -52,6 +52,9 @@ $(function () {
     if (window.BoardAnnotations) {
       window.BoardAnnotations.init(analysisBoard);
     }
+    if (window.PromotionLayer) {
+      window.PromotionLayer.init(analysisBoard);
+    }
 
     renderMoveList();
     $('#fenInput').val(game.fen());
@@ -99,11 +102,54 @@ $(function () {
   // already exists, or otherwise adding this as a new side line alongside
   // any continuation(s) that node already had, without disturbing them.
   function onAnalysisDrop(source, target) {
+    if (isPromotionMove(source, target)) {
+      // chessboard.js's onDrop has no async return -- the picker can't
+      // resolve before this function has to answer, so the drop is always
+      // snapped back here. If the user does pick a piece, handlePromotionMove
+      // plays it explicitly and repositions the board itself.
+      handlePromotionMove(source, target);
+      return 'snapback';
+    }
+
     var moveObj = game.move({ from: source, to: target, promotion: 'q' });
     if (moveObj === null) {
       return 'snapback';
     }
+    completeMove(moveObj);
+  }
 
+  // True when some legal move from `source` to `target` is a promotion --
+  // i.e. chess.js would only accept it with a `promotion` field. Asking
+  // chess.js this way (rather than re-deriving "pawn moving to the back
+  // rank" here) keeps this in sync with its own move legality for free.
+  function isPromotionMove(source, target) {
+    var candidates = game.moves({ square: source, verbose: true });
+    return candidates.some(function (move) {
+      return move.to === target && move.promotion;
+    });
+  }
+
+  function handlePromotionMove(source, target) {
+    if (!window.PromotionLayer) {
+      return;
+    }
+    window.PromotionLayer.prompt(target, game.turn(), function (piece) {
+      if (!piece) {
+        return;
+      }
+      var moveObj = game.move({ from: source, to: target, promotion: piece });
+      if (moveObj === null) {
+        return;
+      }
+      completeMove(moveObj);
+      analysisBoard.position(game.fen());
+    });
+  }
+
+  // Shared tail end of a completed move, regardless of whether it was played
+  // straight from onAnalysisDrop or resolved asynchronously via the
+  // promotion picker.
+  function completeMove(moveObj) {
     tree.addMove(tree.getCurrent(), {
       san: moveObj.san,
       from: moveObj.from,

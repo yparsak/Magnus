@@ -116,6 +116,39 @@ div[class*="spare-pieces-"] {
     z-index: 150;
 }
 
+/* Pawn-promotion piece picker (see promotion-layer.js). Sits above pieces
+   (z-index: 100) and annotations (z-index: 150) so it's always clickable;
+   choice squares are laid out on the same 8x8 percentage grid as the board
+   itself, so they line up with real squares at any board size. */
+.promotion-layer {
+    height: 100%;
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    z-index: 200;
+}
+
+.promotion-layer-choice {
+    align-items: center;
+    background: rgba(44, 115, 184, 0.9);
+    cursor: pointer;
+    display: flex;
+    height: 12.5%;
+    justify-content: center;
+    position: absolute;
+    width: 12.5%;
+}
+
+.promotion-layer-choice:hover {
+    background: rgba(44, 115, 184, 1);
+}
+
+.promotion-layer-choice img {
+    height: 85%;
+    width: 85%;
+}
+
 .board-toolbar {
     display: flex;
     gap: 8px;
