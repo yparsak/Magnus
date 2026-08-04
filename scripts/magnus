@@ -10,7 +10,7 @@ start() {
   echo "Starting $APP_NAME"
   cd ~/${APP_NAME}/app/ || exit 1
 
-  nohup node ${APP_JS} >> /tmp/${APP_NAME}.log 2>&1 &
+  nohup node ${APP_NAME,,}.js >> /tmp/${APP_NAME}.log 2>&1 &
   new_pid=$!
   echo "${APP_NAME} started in the background (PID: ${new_pid})"
 }
