@@ -8,6 +8,7 @@ const editorRouter  = require('./routes/editorRouter');
 const analysisRouter = require('./routes/analysisRouter');
 const apiRouter   = require('./routes/apiRouter');
 const authRouter  = require('./routes/authRouter');
+const userRouter  = require('./routes/userRouter');
 const { attachCurrentUser, requireAuth } = require('./lib/auth');
 
 const app = express();
@@ -36,6 +37,7 @@ app.use('/', authRouter);        // /login, /signup, /logout must stay reachable
 app.use('/', indexRouter);       // home page is public
 app.use('/editor',editorRouter); // editor is viewable while unauthenticated
 app.use('/analysis',analysisRouter); // analysis is viewable while unauthenticated
+app.use('/user', userRouter);    // add-account page shows a login prompt when unauthenticated
 app.use(requireAuth);
 app.use('/api',   apiRouter);
 

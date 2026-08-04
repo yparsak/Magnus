@@ -1,0 +1,51 @@
+  <main class="auth-page">
+    <div class="auth-card">
+      <h1 class="auth-card-title">Add Chess Account</h1>
+
+      <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
+        <p class="auth-card-error"><%= errorMessage %></p>
+      <% } %>
+
+      <% if (typeof successMessage !== 'undefined' && successMessage) { %>
+        <p class="auth-card-hint"><%= successMessage %></p>
+      <% } %>
+
+      <% if (!currentUser) { %>
+        <p class="auth-card-hint">To add chess account please login first</p>
+      <% } else { %>
+        <form class="auth-form" method="POST" action="/user/add_account">
+          <label>Platform</label>
+          <div class="radio-group">
+            <% platforms.forEach(function(platform) { %>
+              <label class="radio-option">
+                <input type="radio" name="platform_id" value="<%= platform.id %>"
+                  <%= (typeof values !== 'undefined' && String(values.platform_id) === String(platform.id)) ? 'checked' : '' %>
+                  required>
+                <%= platform.name %>
+              </label>
+            <% }); %>
+          </div>
+
+          <label for="accountname">Account username</label>
+          <input type="text" id="accountname" name="accountname" maxlength="20" autofocus required
+            value="<%= typeof values !== 'undefined' && values.accountname ? values.accountname : '' %>">
+
+          <label>Account type</label>
+          <div class="radio-group">
+            <label class="radio-option">
+              <input type="radio" name="account_type" value="a"
+                <%= (typeof values === 'undefined' || values.account_type === 'a') ? 'checked' : '' %> required>
+              Adding my own account
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="account_type" value="b"
+                <%= (typeof values !== 'undefined' && values.account_type === 'b') ? 'checked' : '' %> required>
+              Following a player
+            </label>
+          </div>
+
+          <button type="submit" class="submit">Add Account</button>
+        </form>
+      <% } %>
+    </div>
+  </main>

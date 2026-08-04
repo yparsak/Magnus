@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS accounts (
   platform_id int(11) NOT NULL,
   accountname varchar(20) NOT NULL,
   last_scan timestamp NULL DEFAULT NULL,
+  myown tinyint(1) NOT NULL DEFAULT 1,
   KEY `fk_user` (`user_id`),
   KEY `fk_platform` (`platform_id`),
   CONSTRAINT `fk_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),

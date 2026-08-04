@@ -393,6 +393,21 @@ tbody td{
     outline: none;
 }
 
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.radio-option {
+    align-items: center;
+    color: #e0e0e0;
+    display: flex;
+    font-size: 14px;
+    gap: 8px;
+    margin-top: 0;
+}
+
 
 /* ==========================================================================
    ERROR MODULE
