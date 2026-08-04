@@ -1,57 +1,15 @@
-
---
--- Table structure for table `opening_book`
---
-DROP TABLE IF EXISTS `opening_book`;
-CREATE TABLE `opening_book` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `eco` varchar(5) NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `fen` varchar(100) NOT NULL,
-  `pgn` text DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_fen` (`fen`)
-);
-
---
---
---
-DROP TABLE IF EXISTS `platforms`;
-CREATE TABLE IF NOT EXISTS platforms (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name varchar(20) NOT NULL
-);
-
--- Dumping data for table
-SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
-LOCK TABLES `platforms` WRITE;
-
-INSERT INTO `platforms` VALUES
-(1,'lichess.org'),
-(2,'chess.com');
-
-UNLOCK TABLES;
-COMMIT;
-SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
-
---
---
---
-DROP TABLE IF EXISTS `users`;
-CREATE TABLE IF NOT EXISTS users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name varchar(20) DEFAULT NULL,
-  lastname varchar(20) DEFAULT NULL,
-  username varchar(50) NOT NULL,
-  email varchar(255) DEFAULT NULL,
-  password_hash varchar(255) DEFAULT NULL,
-  UNIQUE KEY `uq_username` (`username`)
-);
-
---
---
---
 DROP TABLE IF EXISTS `SignUp`;
+DROP TABLE IF EXISTS `challenge_book`;
+DROP TABLE IF EXISTS `game_moves`;
+DROP TABLE IF EXISTS `user_games`;
+DROP TABLE IF EXISTS `chess_puzzles`;
+DROP TABLE IF EXISTS `opening_book`;
+DROP TABLE IF EXISTS `accounts`;
+DROP TABLE IF EXISTS `users`;
+DROP TABLE IF EXISTS `platforms`;
+
+
+
 CREATE TABLE IF NOT EXISTS SignUp (
   id INT AUTO_INCREMENT PRIMARY KEY,
   link_id varchar(64) NOT NULL,
@@ -62,10 +20,43 @@ CREATE TABLE IF NOT EXISTS SignUp (
   UNIQUE KEY `uq_link_id` (`link_id`)
 );
 
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name varchar(20) DEFAULT NULL,
+  lastname varchar(20) DEFAULT NULL,
+  username varchar(50) NOT NULL,
+  email varchar(255) DEFAULT NULL,
+  password_hash varchar(255) DEFAULT NULL,
+  UNIQUE KEY `uq_username` (`username`)
+);
+
+CREATE TABLE IF NOT EXISTS platforms (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name varchar(20) NOT NULL
+);
 --
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `platforms` WRITE;
+
+INSERT INTO `platforms` VALUES
+(1,'lichess.org'),
+(2,'chess.com');
+
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 --
---
-DROP TABLE IF EXISTS `accounts`;
+
+CREATE TABLE `opening_book` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `eco` varchar(5) NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `fen` varchar(100) NOT NULL,
+  `pgn` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_fen` (`fen`)
+);
+
 CREATE TABLE IF NOT EXISTS accounts (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id int(11) NOT NULL,
@@ -79,10 +70,6 @@ CREATE TABLE IF NOT EXISTS accounts (
   CONSTRAINT `fk_platform` FOREIGN KEY (`platform_id`) REFERENCES `platforms` (`id`)
 ); 
 
---
---
---
-DROP TABLE IF EXISTS `user_games`;
 CREATE TABLE IF NOT EXISTS user_games (
   `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `account_id` int(11) NOT NULL,
@@ -109,10 +96,6 @@ CREATE TABLE IF NOT EXISTS user_games (
   CONSTRAINT `fk_user_games_platform` FOREIGN KEY (`platform_id`) REFERENCES `platforms` (`id`)
 );
 
---
---
---
-DROP TABLE IF EXISTS `game_moves`;
 CREATE TABLE IF NOT EXISTS game_moves (
   `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `game_id` int(11) NOT NULL,
@@ -129,10 +112,6 @@ CREATE TABLE IF NOT EXISTS game_moves (
   CONSTRAINT `fk_game` FOREIGN KEY (`game_id`) REFERENCES `user_games` (`id`) 
 );
 
---
---
---
-DROP TABLE IF EXISTS `chess_puzzles`;
 CREATE TABLE IF NOT EXISTS chess_puzzles (
   `PuzzleId` varchar(50) NOT NULL,
   `FEN` varchar(255) NOT NULL,
@@ -151,18 +130,10 @@ CREATE TABLE IF NOT EXISTS chess_puzzles (
   KEY `idx_notation` (`NotationType`)
 );
 
---
---
---
-DROP TABLE IF EXISTS `challenge_book`;
 CREATE TABLE IF NOT EXISTS challenge_book (
   id INT AUTO_INCREMENT PRIMARY KEY,
   fen varchar(255) NOT NULL
 );
-
---
--- Dumping data for table `opening_book`
---
 
 SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `opening_book` WRITE;
