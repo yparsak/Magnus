@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { verifyPlatformUser } = require('../lib/platformVerifier');
 const { pool } = require('../lib/db');
 
 const { renderPage } = require('../lib/renderPage');
@@ -99,6 +100,16 @@ router.post('/add_account', async (req, res) => {
     }
 
     const myOwn = accountType === 'a' ? 1 : 0;
+
+    const userExists = await verifyPlatformUser(platformId, accountname);
+
+    if (!userExists) {
+      return showAddAccountForm(res, {
+        status: 400,
+        errorMessage: 'Account doesnt exist',
+        values
+      });
+    }
 
     await pool.query(
       'INSERT INTO accounts (user_id, platform_id, accountname, last_scan, myown) VALUES (?, ?, ?, NULL, ?)',

@@ -278,11 +278,12 @@
 
   ${APP_PATH}/scripts/install_engine.sh
 
-  sudo mv ${ENGINE_SRC_PATH}/current_version/src/${ENGINE_NAME,,} ${ENGINE_SRC_PATH}/current_version/.
+  sudo cp ${ENGINE_SRC_PATH}/current_version/src/${ENGINE_NAME,,} ${ENGINE_SRC_PATH}/current_version/.
   sudo ln -sf ${ENGINE_SRC_PATH}/current_version/${ENGINE_NAME,,} /usr/local/bin/${ENGINE_NAME,,}
   sudo chown "$SUDO_USER:$SUDO_USER" /usr/local/bin/${ENGINE_NAME,,}
 
   sudo ln -sf ${APP_PATH}/scripts/${APP_NAME,,} /usr/local/bin/${APP_NAME,,}
   sudo chown "$SUDO_USER:$SUDO_USER" /usr/local/bin/${APP_NAME,,}
+
   echo "Done"
 
