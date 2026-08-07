@@ -1,7 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { verifyPlatformUser } = require('../lib/platformVerifier');
-const { pool } = require('../lib/db');
+const { verifyPlatformAccount } = require('../lib/platformVerifier');
+const { pool, 
+        getPlatforms,
+        getPlatformAccount,
+        insertPlatformAccount,
+        getUserAccount,
+        insertUserAccount } = require('../lib/db');
 
 const { renderPage } = require('../lib/renderPage');
 
@@ -15,11 +20,6 @@ function isValidAccountname(accountname) {
 
 function isValidAccountType(accountType) {
   return accountType === 'a' || accountType === 'b';
-}
-
-async function getPlatforms() {
-  const [rows] = await pool.query('SELECT id, name FROM platforms ORDER BY id');
-  return rows;
 }
 
 function showAddAccountForm(res, options = {}) {
@@ -101,22 +101,54 @@ router.post('/add_account', async (req, res) => {
 
     const myOwn = accountType === 'a' ? 1 : 0;
 
-    const userExists = await verifyPlatformUser(platformId, accountname);
+    let AccountID = null;
+    AccountID = await getPlatformAccount(platformId, accountname);
 
-    if (!userExists) {
-      return showAddAccountForm(res, {
+    if (AccountID === null) {
+      const validAccount = await verifyPlatformAccount(platformId, accountname);
+      if ( validAccount ) {
+        AccountID = await insertPlatformAccount(platformId, accountname);
+      } else {
+        return showAddAccountForm(res, {
         status: 400,
-        errorMessage: 'Account doesnt exist',
-        values
-      });
+        errorMessage: `Account Name ${accountname} is not valid`,
+        values,
+        platforms
+        });
+      }
     }
 
-    await pool.query(
-      'INSERT INTO accounts (user_id, platform_id, accountname, last_scan, myown) VALUES (?, ?, ?, NULL, ?)',
-      [req.session.user.id, platformId, accountname, myOwn]
-    );
+    if (AccountID === null) {
+      return showAddAccountForm(res, {
+        status: 400,
+        errorMessage: `Unable to add ${accountname}`,
+        values,
+        platforms
+      });
+    } else {
+      const userid = await getUserAccount(req.session.user.id, AccountID);
+      if (userid === null) {
+        const useraccount = await insertUserAccount(req.session.user.id, AccountID, myOwn);
+        if (useraccount === null) {
+          return showAddAccountForm(res, {
+            status: 400,
+            errorMessage: `Unable to add ${accountname} `,
+            values,
+            platforms
+          });
+        } else {
+          return res.redirect('/user/add_account?added=1');
+        }
+      } else {
+        return showAddAccountForm(res, {
+          status: 400,
+          errorMessage: `User Account ${accountname} already found in database`,
+          values,
+          platforms
+        });
+      }
+    }
 
-    return res.redirect('/user/add_account?added=1');
   } catch (err) {
     console.error(err);
     return showAddAccountForm(res, {

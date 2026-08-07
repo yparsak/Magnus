@@ -20,4 +20,48 @@ async function testConnection() {
   }
 }
 
-module.exports = { pool, testConnection };
+async function getPlatforms() {
+  const [rows] = await pool.query('SELECT id, name FROM platforms ORDER BY id');
+  return rows;
+}
+
+async function getPlatformAccount(platformId, accountname) {
+  const [rows] = await pool.query('SELECT id FROM accounts WHERE platform_id = ? AND accountname = ? LIMIT 1;',
+      [platformId, accountname]
+      );
+  return rows.length ? rows[0].id : null; 
+}
+
+async function insertPlatformAccount(platformId, accountname) {
+    const [result] = await pool.query(
+        'INSERT INTO accounts (platform_id, accountname) VALUES (?, ?)',
+        [platformId, accountname]
+    );
+    return result.insertId;
+}
+
+async function getUserAccount(userid, AccountID) {
+  const [rows] = await pool.query(
+    'SELECT id FROM user_accounts WHERE user_id = ? AND account_id = ? LIMIT 1;',
+    [userid, AccountID]
+  );
+  return rows.length ? rows[0].id : null; 
+}
+
+async function insertUserAccount(userid, AccountID, owner) {
+    const [result] = await pool.query(
+        'INSERT INTO user_accounts (user_id, account_id, owner) VALUES (?, ?, ?)',
+        [userid, AccountID, owner]
+    );
+    return result.insertId;
+}
+
+module.exports = { pool, 
+                   testConnection, 
+                   getPlatforms, 
+                   getPlatformAccount,
+                   insertPlatformAccount,
+                   getUserAccount,
+                   insertUserAccount   
+                 };
+

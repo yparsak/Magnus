@@ -249,7 +249,7 @@ async function authenticateWithPassword(username, password) {
   const [rows] = await pool.query(
     'SELECT id, username, password_hash FROM users WHERE username = ? LIMIT 1',
     [username]
-  );
+  );  
   const user = rows[0];
   if (!user || !user.password_hash) {
     return null;

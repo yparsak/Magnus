@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS `user_games`;
 DROP TABLE IF EXISTS `chess_puzzles`;
 DROP TABLE IF EXISTS `opening_book`;
 DROP TABLE IF EXISTS `accounts`;
+DROP TABLE IF EXISTS `user_accounts`;
 DROP TABLE IF EXISTS `users`;
 DROP TABLE IF EXISTS `platforms`;
 
@@ -58,16 +59,22 @@ CREATE TABLE `opening_book` (
 );
 
 CREATE TABLE IF NOT EXISTS accounts (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id int(11) NOT NULL,
+  id int(11) AUTO_INCREMENT PRIMARY KEY,
   platform_id int(11) NOT NULL,
   accountname varchar(20) NOT NULL,
   last_scan timestamp NULL DEFAULT NULL,
+  KEY `fk_platform` (`platform_id`),
+  CONSTRAINT `fk_platform` FOREIGN KEY (`platform_id`) REFERENCES `platforms` (`id`)
+); 
+
+CREATE TABLE IF NOT EXISTS user_accounts (
+  id int(11) AUTO_INCREMENT PRIMARY KEY,
+  user_id int(11) NOT NULL,
+  account_id int(11) NOT NULL,
   myown tinyint(1) NOT NULL DEFAULT 1,
   KEY `fk_user` (`user_id`),
-  KEY `fk_platform` (`platform_id`),
   CONSTRAINT `fk_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
-  CONSTRAINT `fk_platform` FOREIGN KEY (`platform_id`) REFERENCES `platforms` (`id`)
+  CONSTRAINT `fk_account_id` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`) 
 ); 
 
 CREATE TABLE IF NOT EXISTS user_games (
