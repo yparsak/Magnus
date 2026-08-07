@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS user_games (
   `black_elo` smallint(6) DEFAULT NULL,
   `eval_min` decimal(10,2) DEFAULT NULL,
   `eval_max` decimal(10,2) DEFAULT NULL,
+  UNIQUE KEY `uq_account_game` (`account_id`, `game_id`),
   KEY `fk_account` (`account_id`),
   KEY `fk_platform` (`platform_id`),
   KEY `fk_book` (`book_id`),
