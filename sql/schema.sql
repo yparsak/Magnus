@@ -4,8 +4,8 @@ DROP TABLE IF EXISTS `game_moves`;
 DROP TABLE IF EXISTS `user_games`;
 DROP TABLE IF EXISTS `chess_puzzles`;
 DROP TABLE IF EXISTS `opening_book`;
-DROP TABLE IF EXISTS `accounts`;
 DROP TABLE IF EXISTS `user_accounts`;
+DROP TABLE IF EXISTS `accounts`;
 DROP TABLE IF EXISTS `users`;
 DROP TABLE IF EXISTS `platforms`;
 
