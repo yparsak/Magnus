@@ -33,10 +33,15 @@ async function fetchLichessGames(account) {
 
     console.log(`${siteConfig.LICHESS_USER_API}/${account.accountname}`);
 
+    const headers = { Accept: 'application/x-ndjson' };
+    if (process.env.LICHESS_TOKEN) {
+      headers.Authorization = `Bearer ${process.env.LICHESS_TOKEN}`;
+    }
+
     const response = await axios.get(
       `${siteConfig.LICHESS_USER_API}/${account.accountname}`,
       { params,
-        headers: { Accept: 'application/x-ndjson' },
+        headers,
         responseType: 'text',
         timeout: 60000
       }
