@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS user_accounts (
   id int(11) AUTO_INCREMENT PRIMARY KEY,
   user_id int(11) NOT NULL,
   account_id int(11) NOT NULL,
-  myown tinyint(1) NOT NULL DEFAULT 1,
+  owner tinyint(1) NOT NULL DEFAULT 1,
   KEY `fk_user` (`user_id`),
   CONSTRAINT `fk_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
   CONSTRAINT `fk_account_id` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`) 
