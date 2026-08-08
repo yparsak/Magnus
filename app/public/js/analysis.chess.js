@@ -36,14 +36,29 @@ $(function () {
   function initAnalysis() {
     var pageData = window.MAGNUS_PAGE_DATA || {};
     var fen = pageData.fen;
+    var moves = pageData.moves;
 
-    // A missing fen means "start a fresh analysis" (e.g. the nav link) --
-    // default to the standard starting position instead of bouncing away.
-    // A present-but-invalid fen is unexpected, so fall back the same way
-    // rather than handing a malformed string to `new Chess(fen)`.
-    game = (fen && new Chess().validate_fen(fen).valid) ? new Chess(fen) : new Chess();
-    analysisInitialFen = game.fen();
-    tree = window.MoveTree.createTree(analysisInitialFen);
+    if (Array.isArray(moves) && moves.length) {
+      // A stored game (?gameid=) -- replay it from the standard starting
+      // position into the tree, then park the view at the start (ply 0) so
+      // the user steps through it, same as opening a fresh game would feel.
+      game = new Chess();
+      analysisInitialFen = game.fen();
+      tree = window.MoveTree.createTree(analysisInitialFen);
+      moves.forEach(function (moveInfo) {
+        tree.addMove(tree.getCurrent(), moveInfo);
+      });
+      tree.goToStart();
+      game.load(tree.getCurrent().fen);
+    } else {
+      // A missing fen means "start a fresh analysis" (e.g. the nav link) --
+      // default to the standard starting position instead of bouncing away.
+      // A present-but-invalid fen is unexpected, so fall back the same way
+      // rather than handing a malformed string to `new Chess(fen)`.
+      game = (fen && new Chess().validate_fen(fen).valid) ? new Chess(fen) : new Chess();
+      analysisInitialFen = game.fen();
+      tree = window.MoveTree.createTree(analysisInitialFen);
+    }
 
     analysisBoard = Chessboard('board', {
       draggable: true,

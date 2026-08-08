@@ -90,5 +90,20 @@ function resolvePosition({ fen, moves } = {}) {
   return chess;
 }
 
-module.exports = { isValidFen, resolvePosition, ValidationError };
+// Converts a `game_moves` row into the { san, from, to, promotion, color, fen }
+// shape the frontend move tree (move-tree.js) expects. `long_notation` is
+// chess.js "lan" notation: first 2 chars = from square, next 2 = to square,
+// 5th char (if present) = promotion piece letter. `side` is 1 = white, 0 = black.
+function gameMoveToMoveInfo(row) {
+  return {
+    san: row.short_notation,
+    from: row.long_notation.slice(0, 2),
+    to: row.long_notation.slice(2, 4),
+    promotion: row.long_notation.length > 4 ? row.long_notation.charAt(4) : null,
+    color: row.side ? 'w' : 'b',
+    fen: row.fen
+  };
+}
+
+module.exports = { isValidFen, resolvePosition, ValidationError, gameMoveToMoveInfo };
 

@@ -56,12 +56,38 @@ async function insertUserAccount(userid, AccountID, owner) {
     return result.insertId;
 }
 
-module.exports = { pool, 
-                   testConnection, 
-                   getPlatforms, 
+// Returns the user_games row only if it belongs to an account owned/followed
+// by userId -- joins through accounts (matching both account_id and
+// platform_id, guarding against the two columns ever disagreeing) and
+// user_accounts, rather than fetching the game and checking ownership in JS.
+async function getUserGameForUser(userId, gameId) {
+  const [rows] = await pool.query(
+    `SELECT ug.* FROM user_games ug
+     JOIN accounts a ON a.id = ug.account_id AND a.platform_id = ug.platform_id
+     JOIN user_accounts ua ON ua.account_id = a.id AND ua.user_id = ?
+     WHERE ug.id = ?
+     LIMIT 1;`,
+    [userId, gameId]
+  );
+  return rows.length ? rows[0] : null;
+}
+
+async function getGameMoves(gameId) {
+  const [rows] = await pool.query(
+    'SELECT * FROM game_moves WHERE game_id = ? ORDER BY id ASC;',
+    [gameId]
+  );
+  return rows;
+}
+
+module.exports = { pool,
+                   testConnection,
+                   getPlatforms,
                    getPlatformAccount,
                    insertPlatformAccount,
                    getUserAccount,
-                   insertUserAccount   
+                   insertUserAccount,
+                   getUserGameForUser,
+                   getGameMoves
                  };
 
