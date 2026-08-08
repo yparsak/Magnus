@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { testConnection } = require('../lib/db');
+const { ValidationError } = require('../lib/chess');
+const { get_engine_eval, get_engine_bestmove } = require('../lib/engineApi');
 
 router.get('/health', async (req, res) => {
   try {
@@ -8,6 +10,34 @@ router.get('/health', async (req, res) => {
     res.json({ status: 'ok', db: 'connected' });
   } catch (err) {
     res.status(500).json({ status: 'error', db: err.message });
+  }
+});
+
+router.post('/engine/eval', async (req, res) => {
+  try {
+    const { fen, moves, depth } = req.body || {};
+    const result = await get_engine_eval({ fen, moves, depth });
+    res.json(result);
+  } catch (err) {
+    if (err instanceof ValidationError) {
+      return res.status(400).json({ error: err.message });
+    }
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+router.post('/engine/bestmove', async (req, res) => {
+  try {
+    const { fen, moves, depth } = req.body || {};
+    const moveList = await get_engine_bestmove({ fen, moves, depth });
+    res.json({ moves: moveList });
+  } catch (err) {
+    if (err instanceof ValidationError) {
+      return res.status(400).json({ error: err.message });
+    }
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

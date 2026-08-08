@@ -93,10 +93,11 @@ async function getBestMove(fen, wtime, btime, winc, binc) {
 /**
  * Returns a centipawn/mate evaluation for a given FEN.
  * @param {string} fen
+ * @param {number} [depth=10]
  * @returns {Promise<{ type: string, value: number }>}
  */
-async function getEvaluation(fen) {
-  const lines = await runEngine([`position fen ${fen}`, 'go depth 10']);
+async function getEvaluation(fen, depth = 10) {
+  const lines = await runEngine([`position fen ${fen}`, `go depth ${depth}`]);
 
   let lastScore = { type: 'cp', value: 0 };
   for (const line of lines) {
