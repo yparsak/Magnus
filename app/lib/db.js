@@ -72,6 +72,22 @@ async function getUserGameForUser(userId, gameId) {
   return rows.length ? rows[0] : null;
 }
 
+// Returns up to `limit` of userId's most recent games (same ownership join
+// as getUserGameForUser), newest first, starting after `offset` rows. Callers
+// paginating should fetch pageSize + 1 rows to detect a next page without a
+// separate COUNT(*) query.
+async function getLatestUserGames(userId, limit, offset = 0) {
+  const [rows] = await pool.query(
+    `SELECT ug.* FROM user_games ug
+     JOIN accounts a ON a.id = ug.account_id AND a.platform_id = ug.platform_id
+     JOIN user_accounts ua ON ua.account_id = a.id AND ua.user_id = ?
+     ORDER BY ug.date DESC
+     LIMIT ? OFFSET ?;`,
+    [userId, Number(limit), Number(offset)]
+  );
+  return rows;
+}
+
 async function getGameMoves(gameId) {
   const [rows] = await pool.query(
     'SELECT * FROM game_moves WHERE game_id = ? ORDER BY id ASC;',
@@ -88,6 +104,7 @@ module.exports = { pool,
                    getUserAccount,
                    insertUserAccount,
                    getUserGameForUser,
+                   getLatestUserGames,
                    getGameMoves
                  };
 

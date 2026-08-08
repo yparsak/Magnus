@@ -17,8 +17,33 @@
                 </tr>
                 </thead>
                 <tbody>
+                <% if (typeof pageData !== 'undefined' && pageData.games && pageData.games.length) { %>
+                  <% pageData.games.forEach(function(game) { %>
+                  <tr>
+                      <td><a href="/analysis?gameid=<%= game.id %>"><%= game.id %></a></td>
+                      <td><%= game.white %></td>
+                      <td><%= game.black %></td>
+                      <td><%= game.time_control %></td>
+                      <td><%= game.termination %></td>
+                      <td><%= game.date instanceof Date ? game.date.toLocaleDateString() : game.date %></td>
+                      <td><%= game.result %></td>
+                  </tr>
+                  <% }); %>
+                <% } else { %>
+                  <tr>
+                      <td colspan="7">No games yet</td>
+                  </tr>
+                <% } %>
                 </tbody>
             </table>
+            <div class="pagination">
+                <% if (pageData.hasPrev) { %>
+                  <a href="/archive?page=<%= pageData.page - 1 %>">Previous</a>
+                <% } %>
+                <% if (pageData.hasNext) { %>
+                  <a href="/archive?page=<%= pageData.page + 1 %>">Next</a>
+                <% } %>
+            </div>
         </div>
     </main>
   </div>
