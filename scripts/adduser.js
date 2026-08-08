@@ -1,8 +1,5 @@
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', 'scripts', '.env') });
-
 const bcrypt = require('bcryptjs');
-const mysql = require('mysql2/promise');
+const db = require('./lib/db');
 
 const BCRYPT_SALT_ROUNDS = 10;
 
@@ -54,18 +51,9 @@ async function main() {
 
   const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
-  const connection = await mysql.createConnection({
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-  });
+  const connection = await db.createConnection();
 
-  await connection.query(
-    'INSERT INTO users (username, password_hash) VALUES (?, ?) ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash)',
-    [username, passwordHash]
-  );
+  await db.insertUser(connection, username, passwordHash);
   await connection.end();
 
   console.log(`User "${username}" created/updated with a hashed password.`);

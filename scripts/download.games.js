@@ -1,9 +1,8 @@
 'use strict';
 
 const axios      = require('axios');
-const mysql      = require('mysql2/promise');
 const { Chess }  = require('chess.js');
-const dbConfig   = require('./lib/dbConfig');
+const db         = require('./lib/db');
 const siteConfig = require('./lib/siteConfig');
 
 const DELAY_MS              = 60 * 60 * 1000; // 1 Hour
@@ -214,20 +213,10 @@ async function persistGames(conn, account, rawGames) {
 
       const game = buildGameRecord(account, rawGame);
 
-      const [insertResult] = await conn.execute(
-        `INSERT IGNORE INTO user_games
-           (account_id, platform_id, game_id, date, side, termination, points, result, time_control, white, white_elo, black, black_elo)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [account.id, account.platform_id, game.externalId, game.date, game.side, game.termination,
-         game.points, game.result, game.timeControl, game.white, game.whiteElo, game.black, game.blackElo]
-      );
+      const insertResult = await db.insertUserGame(conn, account, game);
 
       if (insertResult.affectedRows > 0 && game.moves.length) {
-        const rows = game.moves.map(move => [insertResult.insertId, move.fen, move.shortNotation, move.longNotation, move.side]);
-        await conn.query(
-          `INSERT INTO game_moves (game_id, fen, short_notation, long_notation, side) VALUES ?`,
-          [rows]
-        );
+        await db.insertGameMoves(conn, insertResult.insertId, game.moves);
       }
 
       // Advance last_scan past every game we looked at this batch (including
@@ -238,10 +227,7 @@ async function persistGames(conn, account, rawGames) {
     }
 
     if (latestDateMs !== null) {
-      await conn.execute(
-        `UPDATE accounts SET last_scan = ? WHERE id = ?`,
-        [new Date(latestDateMs), account.id]
-      );
+      await db.updateLastScan(conn, account.id, new Date(latestDateMs));
     }
 
     await conn.commit();
@@ -256,10 +242,8 @@ async function download() {
   console.log(`Downloading games @ ${new Date().toLocaleString()}`);
   let conn;
   try {
-    conn = await mysql.createConnection(dbConfig);
-    const [accounts] = await conn.execute(
-      `SELECT a.id, a.platform_id, p.name, a.accountname, a.last_scan FROM accounts a INNER JOIN platforms p ON a.platform_id = p.id`
-    );
+    conn = await db.createConnection();
+    const accounts = await db.getAccountsToScan(conn);
     for (const account of accounts) {
       console.log(`Platform: ${account.platform_id} ${account.name} Account: ${account.accountname}`);
 

@@ -1,53 +1,67 @@
+'use strict';
+
+/**
+ * db.js
+ * Single home for all raw SQL used by scripts/. Callers own the connection
+ * (and any transaction control on it); these functions just run statements
+ * against a connection/pool handle passed in as the first argument.
+ */
+
 const mysql = require('mysql2/promise');
+const dbConfig = require('./dbConfig');
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
-
-async function insert_usergames(
-     account_id,
-     platform_id,
-     game_id,
-     date,side, 
-     termination,points, result, time_control,
-     white, white_elo,
-     black, black_elo  
-   ) {
-    const [result] = await pool.query(
-      `INSERT IGNORE INTO user_games
-         (account_id, platform_id, game_id, date, side, termination, points, result, time_control, white, white_elo, black, black_elo)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-       [account.id, account.platform_id, game.externalId, game.date, game.side, game.termination,
-        game.points, game.result, game.timeControl, game.white, game.whiteElo, game.black, game.blackElo]
-    );
-    return result;
+async function createConnection() {
+  return mysql.createConnection(dbConfig);
 }
 
-async function insert_gamemoves(
-     game_id,
-     fen, short_notation, long_notation,
-     side
-   ) {
-
-  const rows = game.moves.map(move => [game_id, fen, short_notation, long_notation, side]);
-
-  const [result] = await pool.query(
-    `INSERT INTO game_moves (game_id, fen, short_notation, long_notation, side) VALUES ?`,
-    [rows]
+async function getAccountsToScan(conn) {
+  const [accounts] = await conn.execute(
+    `SELECT a.id, a.platform_id, p.name, a.accountname, a.last_scan FROM accounts a INNER JOIN platforms p ON a.platform_id = p.id`
   );
+  return accounts;
+}
 
+async function insertUserGame(conn, account, game) {
+  const [result] = await conn.execute(
+    `INSERT IGNORE INTO user_games
+       (account_id, platform_id, game_id, date, side, termination, points, result, time_control, white, white_elo, black, black_elo)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [account.id, account.platform_id, game.externalId, game.date, game.side, game.termination,
+     game.points, game.result, game.timeControl, game.white, game.whiteElo, game.black, game.blackElo]
+  );
   return result;
 }
 
-module.exports = { pool,
-                   insert_usergames,
-                   insert_gamemoves
-                 };
+async function insertGameMoves(conn, gameId, moves) {
+  const rows = moves.map(move => [gameId, move.fen, move.shortNotation, move.longNotation, move.side]);
+  const [result] = await conn.query(
+    `INSERT INTO game_moves (game_id, fen, short_notation, long_notation, side) VALUES ?`,
+    [rows]
+  );
+  return result;
+}
 
+async function updateLastScan(conn, accountId, date) {
+  const [result] = await conn.execute(
+    `UPDATE accounts SET last_scan = ? WHERE id = ?`,
+    [date, accountId]
+  );
+  return result;
+}
+
+async function insertUser(conn, username, passwordHash) {
+  const [result] = await conn.query(
+    'INSERT INTO users (username, password_hash) VALUES (?, ?) ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash)',
+    [username, passwordHash]
+  );
+  return result;
+}
+
+module.exports = {
+  createConnection,
+  getAccountsToScan,
+  insertUserGame,
+  insertGameMoves,
+  updateLastScan,
+  insertUser
+};
