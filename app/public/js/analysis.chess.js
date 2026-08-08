@@ -23,6 +23,13 @@ $(function () {
   var analysisInitialFen = null;
   var tree = null;
 
+  // Bumped on every engine-panel fetch; a response is only rendered if this
+  // still matches the id it was fired with. The engine is slow (~1s+, see
+  // stockfish.js) and the user can navigate faster than that, so an older
+  // request finishing after a newer one would otherwise clobber the panel
+  // with a stale position's data.
+  var engineRequestSeq = 0;
+
   initAnalysis();
   bindControls();
 
@@ -58,6 +65,7 @@ $(function () {
 
     renderMoveList();
     $('#fenInput').val(game.fen());
+    refreshEnginePanel();
   }
 
   function bindControls() {
@@ -161,6 +169,7 @@ $(function () {
 
     renderMoveList();
     $('#fenInput').val(game.fen());
+    refreshEnginePanel();
 
     if (window.BoardAnnotations) {
       window.BoardAnnotations.clear();
@@ -176,6 +185,7 @@ $(function () {
     game.load(node.fen);
     analysisBoard.position(node.fen, false);
     $('#fenInput').val(node.fen);
+    refreshEnginePanel();
 
     if (window.BoardAnnotations) {
       window.BoardAnnotations.clear();
@@ -236,5 +246,94 @@ $(function () {
     tree.goToNode(node);
     renderViewPosition();
     renderMoveList();
+  }
+
+  // Fetches eval + top-10 best moves for whatever `game` currently holds and
+  // renders them into the left panel. Called on load and from every
+  // position-changing path (renderViewPosition, completeMove) so the panel
+  // always reflects the position on screen, not just the position at load.
+  function refreshEnginePanel() {
+    var requestId = ++engineRequestSeq;
+    var fen = game.fen();
+
+    $('#enginePanel').addClass('engine-panel-loading');
+
+    Promise.all([
+      window.ApiClient.getEngineEval({ fen: fen }),
+      window.ApiClient.getEngineBestMoves({ fen: fen })
+    ]).then(function (results) {
+      if (requestId !== engineRequestSeq) {
+        return; // a newer request has since been fired -- drop this stale one
+      }
+      renderEnginePanel(results[0], results[1]);
+    }).catch(function () {
+      if (requestId !== engineRequestSeq) {
+        return;
+      }
+      renderEnginePanelError();
+    });
+  }
+
+  function renderEnginePanel(evalResult, bestMovesResult) {
+    $('#enginePanel').removeClass('engine-panel-loading');
+    renderEngineEval(evalResult);
+    renderEngineMoveList(bestMovesResult.moves || []);
+  }
+
+  function renderEngineEval(evalResult) {
+    var evaluation = evalResult.evaluation || { type: 'cp', value: 0 };
+    $('#engineEvalScore').text(formatEngineScore(evaluation));
+
+    var status = evalResult.is_mate ? 'Checkmate' : (evalResult.in_check ? 'Check' : '');
+    $('#engineEvalStatus').text(status);
+  }
+
+  function renderEngineMoveList(moves) {
+    var $list = $('#engineMoveList').empty();
+
+    moves.forEach(function (entry, index) {
+      var $item = $('<li>', { class: 'engine-move-item' });
+      $item.append($('<span>', { class: 'engine-move-rank', text: (index + 1) + '.' }));
+
+      var $san = $('<span>', { class: 'engine-move-san', text: entry.move });
+      $san.data('san', entry.move);
+      $item.append($san);
+
+      $item.append($('<span>', { class: 'engine-move-score', text: formatEngineScore(entry.score) }));
+      $list.append($item);
+    });
+
+    $list.find('.engine-move-san').on('click', function () {
+      playEngineMove($(this).data('san'));
+    });
+  }
+
+  // Score is already normalized to White's perspective server-side (see
+  // engineApi.js) -- render it as-is, no sign flipping here.
+  function formatEngineScore(score) {
+    if (score.type === 'mate') {
+      return 'M' + score.value;
+    }
+    var pawns = (score.value / 100).toFixed(2);
+    return (score.value > 0 ? '+' : '') + pawns;
+  }
+
+  function renderEnginePanelError() {
+    $('#enginePanel').removeClass('engine-panel-loading');
+    $('#engineEvalScore').text('--');
+    $('#engineEvalStatus').text('Engine unavailable');
+    $('#engineMoveList').empty();
+  }
+
+  // Reuses the exact same tail end a drag-to-move uses (completeMove), so a
+  // best-move click lands in the move tree/move list identically -- chess.js
+  // accepts SAN directly, so no from/to/promotion parsing is needed here.
+  function playEngineMove(san) {
+    var moveObj = game.move(san);
+    if (moveObj === null) {
+      return;
+    }
+    completeMove(moveObj);
+    analysisBoard.position(game.fen());
   }
 });

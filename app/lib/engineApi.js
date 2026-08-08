@@ -39,6 +39,46 @@ function resolveDepth(depth) {
 }
 
 /**
+ * Stockfish's score is always relative to the side to move, not White. Both
+ * endpoints below normalize to a fixed White's-advantage perspective (flip
+ * the sign when Black is to move) so the client never has to know whose
+ * turn it is to render a consistent eval bar/number -- don't flip again
+ * client-side.
+ * @param {{ type: string, value: number }} score
+ * @param {boolean} turnIsBlack
+ * @returns {{ type: string, value: number }}
+ */
+function toWhitePerspective(score, turnIsBlack) {
+  return turnIsBlack ? { type: score.type, value: -score.value } : score;
+}
+
+/**
+ * Converts a UCI/long-notation move (e.g. "e2e4", "e7e8q") into SAN (e.g.
+ * "e4", "e8=Q") by playing it on `chess` and immediately undoing it, so the
+ * position is left unchanged for whatever the caller converts next.
+ * @param {Chess} chess a chess.js instance positioned before the move
+ * @param {string} uciMove
+ * @returns {string|null} the SAN, or null if `uciMove` is empty/illegal
+ */
+function uciToSan(chess, uciMove) {
+  if (!uciMove) {
+    return null;
+  }
+
+  const moveObj = chess.move({
+    from: uciMove.slice(0, 2),
+    to: uciMove.slice(2, 4),
+    promotion: uciMove.length > 4 ? uciMove.charAt(4) : undefined
+  });
+  if (!moveObj) {
+    return null;
+  }
+
+  chess.undo();
+  return moveObj.san;
+}
+
+/**
  * Returns the engine evaluation for a position given as FEN or long-notation moves.
  * @param {Object} params
  * @param {string} [params.fen]
@@ -53,7 +93,7 @@ async function get_engine_eval({ fen, moves, depth } = {}) {
   const evaluation = await getEvaluation(chess.fen(), validDepth);
 
   return {
-    evaluation,
+    evaluation: toWhitePerspective(evaluation, chess.turn() === 'b'),
     in_check: chess.in_check(),
     is_mate: chess.in_checkmate()
   };
@@ -71,13 +111,16 @@ async function get_engine_eval({ fen, moves, depth } = {}) {
 async function get_engine_bestmove({ fen, moves, depth } = {}) {
   const chess = resolvePosition({ fen, moves });
   const validDepth = resolveDepth(depth);
+  const turnIsBlack = chess.turn() === 'b';
 
   const lines = await getAnalysis(chess.fen(), MULTIPV, validDepth);
 
-  return lines.map((line) => ({
-    move: line.pv.split(' ')[0],
-    score: line.score
-  }));
+  return lines
+    .map((line) => ({
+      move: uciToSan(chess, line.pv.split(' ')[0]),
+      score: toWhitePerspective(line.score, turnIsBlack)
+    }))
+    .filter((entry) => entry.move !== null);
 }
 
 module.exports = { get_engine_eval, get_engine_bestmove };

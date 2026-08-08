@@ -321,6 +321,75 @@ div[class*="spare-pieces-"] {
     font-style: normal;
 }
 
+/* Left panel: live engine evaluation + top candidate moves for whatever
+   position is currently on the board (kept in sync by analysis.chess.js's
+   renderViewPosition/completeMove hooks). */
+.engine-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.engine-panel-loading {
+    opacity: 0.5;
+}
+
+.engine-eval-row {
+    align-items: baseline;
+    display: flex;
+    gap: 8px;
+}
+
+.engine-eval-score {
+    color: #d5d5d5;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.engine-eval-status {
+    color: #d48b2d;
+    font-size: 13px;
+}
+
+.engine-move-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    list-style: none;
+    margin: 0;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.engine-move-item {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    padding: 2px 4px;
+}
+
+.engine-move-rank {
+    color: #808080;
+    width: 18px;
+}
+
+.engine-move-san {
+    border-radius: 3px;
+    color: #d5d5d5;
+    cursor: pointer;
+    flex: 1;
+    padding: 2px 6px;
+}
+
+.engine-move-san:hover {
+    background: #3b3835;
+}
+
+.engine-move-score {
+    color: #9a9a9a;
+}
+
 @media (max-width: 900px) {
     .layout-double {
         grid-template-columns: 1fr;
