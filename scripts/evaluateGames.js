@@ -6,16 +6,20 @@ require('dotenv').config({
 });
 
 const mysql    = require('mysql2/promise');
-const sf       = require('../app/lib/stockfish');
+const { get_engine_eval } = require('../app/lib/engineApi');
 const dbConfig = require('./lib/dbConfig');
 
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const ONE_MINUTE = 60 * 1000;
 
+// Background game review can afford deeper search than the interactive
+// /api/engine/eval default (10) since there's no user waiting on it.
+const EVAL_DEPTH = 12;
+
 // ---------------------------------------------------------------------------
 // winningChances(pawns)
 //
-// Converts a Stockfish eval (in pawns, e.g. 1.23) to a winning-chances value
+// Converts an engine eval (in pawns, e.g. 1.23) to a winning-chances value
 // on the range [-1, +1]:
 //   +1  = White is certainly winning
 //    0  = equal
@@ -30,10 +34,26 @@ function winningChances(pawns) {
 }
 
 // ---------------------------------------------------------------------------
-// classifyLoss(prevBest, currentEval, currentBest, side, incheck, mate)
+// evalToPawns(evaluation)
+//
+// get_engine_eval() already normalizes the evaluation to White's perspective.
+// Converts it to a plain pawns number: 'cp' is centipawns (divide by 100);
+// 'mate' has no meaningful magnitude, so store a large-magnitude value with
+// the correct sign (winningChances() clamps to ±10 pawns anyway, so only the
+// sign matters for classification).
+// ---------------------------------------------------------------------------
+function evalToPawns(evaluation) {
+  if (evaluation.type === 'mate') {
+    return evaluation.value < 0 ? -100 : 100;
+  }
+  return evaluation.value / 100;
+}
+
+// ---------------------------------------------------------------------------
+// classifyLoss(prevBest, currentEval, side, isMate)
 //
 // Returns 0=accurate, 1=inaccuracy, 2=mistake, 3=blunder, or null if the
-// move cannot be classified (checkmate, or forced-mate-in-check sentinel).
+// move cannot be classified (checkmate delivered, game over).
 //
 // Key design decisions:
 //
@@ -42,36 +62,15 @@ function winningChances(pawns) {
 //    The sigmoid handles context automatically.
 //
 // 2. SIDE-AWARE sign convention.
-//    Stockfish always scores from White's perspective.
+//    currentEval is always from White's perspective.
 //    White moved → winLoss = prevWin - currentWin  (positive = White worse)
 //    Black moved → winLoss = currentWin - prevWin  (positive = Black worse)
-//
-// 3. IN-CHECK sentinel handling.
-//    When the resulting position is in check, Stockfish sets final_eval = 0
-//    (a sentinel, not a real score). We recover the real position value by
-//    negating best_eval, which is the opponent's best-reply score — so from
-//    White's perspective it is -best_eval.
-//
-//    Exception: if best_eval is also 0, the engine found a forced mate and
-//    there is no meaningful numeric evaluation. Skip classification.
-//
-// 4. CHECKMATE: always skipped (game is over).
 // ---------------------------------------------------------------------------
-function classifyLoss(prevBest, currentEval, currentBest, side, incheck, mate) {
-  if (mate) return null;
-
-  let realEval;
-  if (incheck && currentEval === 0) {
-    // best_eval = 0 signals forced mate detected — unclassifiable
-    if (currentBest === 0) return null;
-    // best_eval is the opponent's score; negate for White's perspective
-    realEval = -currentBest;
-  } else {
-    realEval = currentEval;
-  }
+function classifyLoss(prevBest, currentEval, side, isMate) {
+  if (isMate) return null;
 
   const prevWin    = winningChances(prevBest);
-  const currentWin = winningChances(realEval);
+  const currentWin = winningChances(currentEval);
   const winLoss    = side === 1
     ? prevWin - currentWin   // White moved: drop in White's chances
     : currentWin - prevWin;  // Black moved: rise in White's chances = Black worse
@@ -141,23 +140,22 @@ async function main() {
           );
           if (bookRows.length > 0) lastBookId = bookRows[0].id;
 
-          // Evaluate the position via Stockfish
-          const rawOutput   = await sf.getStockfishData(move.fen);
-          const evalData    = sf.parseEval(rawOutput);
-          const currentEval = parseFloat(evalData.final);
-          const currentBest = parseFloat(evalData.best_eval) || 0;
-          const incheck     = evalData.in_check;
-          const mate        = evalData.mate;
+          // Evaluate the position via the engine API
+          const { evaluation, in_check, is_mate } = await get_engine_eval({
+            fen: move.fen,
+            depth: EVAL_DEPTH
+          });
+          const currentEval = evalToPawns(evaluation);
 
           // Classify the move (null = unclassifiable, store as 0 = accurate)
-          const lossResult      = classifyLoss(prevBest, currentEval, currentBest, side, incheck, mate);
+          const lossResult      = classifyLoss(prevBest, currentEval, side, is_mate);
           const evalLossCategory = lossResult ?? 0;
 
           await conn.beginTransaction();
           try {
             await conn.execute(
-              'UPDATE game_moves SET incheck = ?, mate = ?, final_eval = ?, best_eval = ?, loss = ? WHERE id = ?',
-              [incheck, mate, currentEval, currentBest, evalLossCategory, move.id]
+              'UPDATE game_moves SET incheck = ?, mate = ?, final_eval = ?, loss = ? WHERE id = ?',
+              [in_check, is_mate, currentEval, evalLossCategory, move.id]
             );
             await conn.commit();
           } catch (err) {
@@ -165,20 +163,15 @@ async function main() {
             console.error(`Error updating move ${move.id}:`, err);
           }
 
-          // Advance prevBest for the next move.
-          // For in-check sentinels where we recovered realEval via -best_eval,
-          // use that recovered value so the next move's baseline is correct.
-          // If the move was unclassifiable (forced mate / checkmate), keep prevBest.
-          if (lossResult !== null) {
-            const realEval = (incheck && currentEval === 0) ? -currentBest : currentEval;
-            if (!isNaN(realEval)) prevBest = realEval;
-          }
+          // Advance prevBest for the next move. If the move was unclassifiable
+          // (checkmate delivered), keep prevBest as-is.
+          if (lossResult !== null) prevBest = currentEval;
         }
 
         // Stamp the detected opening on the game
         try {
           await conn.execute(
-            'UPDATE player_games SET book_id = ? WHERE id = ?',
+            'UPDATE user_games SET book_id = ? WHERE id = ?',
             [lastBookId, gameId]
           );
           console.log(`Updated Game (${gameId}) with book_id: ${lastBookId}`);
