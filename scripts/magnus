@@ -1,9 +1,19 @@
 #!/bin/bash
 
 APP_NAME="Magnus"
+DOWNLOAD="downloadGames"
+EVALUATE="evaluateGames"
 
 get_magnus_pid() {
     pgrep -f "node ${APP_NAME,,}.js" | head -n 1
+}
+
+get_download_pid() {
+   pgrep -f "node ${DOWNLOAD}.js" | head -n 1 
+}
+
+get_evaluate_pid() {
+   pgrep -f "node ${EVALUATE}.js" | head -n 1  
 }
 
 start() {
@@ -13,16 +23,49 @@ start() {
   nohup node ${APP_NAME,,}.js >> /tmp/${APP_NAME}.log 2>&1 &
   new_pid=$!
   echo "${APP_NAME} started in the background (PID: ${new_pid})"
+
+  #--------------------------
+  echo "Starting $DOWNLOAD"
+  cd ~/${APP_NAME}/scripts/ || exit 1
+
+  nohup node ${DOWNLOAD}.js >> /tmp/${APP_NAME}.log 2>&1 &
+  new_pid=$!
+  echo "${DOWNLOAD} started in the background (PID: ${new_pid})"
+
+  #--------------------------
+  echo "Starting $EVALUATE"
+  cd ~/${APP_NAME}/scripts/ || exit 1
+
+  nohup node ${EVALUATE}.js >> /tmp/${APP_NAME}.log 2>&1 &
+  new_pid=$!
+  echo "${EVALUATE} started in the background (PID: ${new_pid})"
+
 }
 
 stop () {
   local pid=$(get_magnus_pid)
   if [ -z "$pid" ]; then
     echo "${APP_NAME} is not running."
-    return
+  else
+    echo "Stopping ${APP_NAME} (PID: $pid)..."
+    kill "$pid"
   fi
-  echo "Stopping $name (PID: $pid)..."
-  kill "$pid"
+  #--------------------------
+  local pid=$(get_download_pid)
+  if [ -z "$pid" ]; then
+    echo "${DOWNLOAD} is not running."
+  else
+    echo "Stopping ${DOWNLOAD} (PID: $pid)..."
+    kill "$pid"
+  fi
+  #--------------------------
+  local pid=$(get_evaluate_pid)
+  if [ -z "$pid" ]; then
+    echo "${EVALUATE} is not running."
+  else
+    echo "Stopping ${EVALUATE} (PID: $pid)..."
+    kill "$pid"
+  fi
 }
 
 case "$1" in
@@ -43,10 +86,25 @@ case "$1" in
     else
       echo "${APP_NAME}  is not running."
     fi
+    #--------------------------
+    PID=$(get_download_pid)
+    if [ -n "${PID}" ]; then
+      echo "${DOWNLOAD}  is running in the background (PID: ${PID})"
+    else
+      echo "${DOWNLOAD}  is not running."
+    fi
+    #--------------------------
+    PID=$(get_evaluate_pid)
+    if [ -n "${PID}" ]; then
+      echo "${EVALUATE}  is running in the background (PID: ${PID})"
+    else
+      echo "${EVALUATE}  is not running."
+    fi
     ;;
   *)
     echo "magnus {start, stop, restart, status}"
     ;;
 esac
+
 
 
