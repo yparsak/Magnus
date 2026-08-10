@@ -34,7 +34,6 @@
   SRC_PATH="$MYHOME/src"
   APP_PATH="$SRC_PATH/$APP_NAME"
   APP_DOTENV="${APP_PATH}/app/.env"
-  SCR_DOTENV="${APP_PATH}/scripts/.env"
 
   ENGINE_SRC_PATH="$SRC_PATH/$ENGINE_NAME"
 
@@ -208,9 +207,9 @@
   fi
 
   # -- User Agent for API
-  if [[ -z "$USER_AGENT" ]]; then
-    read -p "Please enter email for application: " APP_EMAIL
-    USER_AGENT="${APP_NAME}_contact:${APP_EMAIL}"
+  if [[ -z "$LICHESS_TOKEN" ]]; then
+    echo "lichess API token is necessary to download games"
+    read -p "Please enter lichess API token: " LICHESS_TOKEN
   fi
 
   # -- App Port Number
@@ -239,13 +238,11 @@
   echo "DB_USER=${SUDO_USER,,}"                         >> "${APP_DOTENV}"
   echo "DB_NAME=${APP_NAME}"                            >> "${APP_DOTENV}"
   echo "DB_PASSWORD=${DB_PASSWORD}"                     >> "${APP_DOTENV}"
-  echo "USER_AGENT=${USER_AGENT}"                       >> "${APP_DOTENV}"
   echo "ENGINE_SRC_PATH=${ENGINE_SRC_PATH}"             >> "${APP_DOTENV}"
   echo "ENGINE_PATH=/usr/local/bin/${ENGINE_NAME,,}"    >> "${APP_DOTENV}"
   echo "LOGFILE=${LOGFILE}"                             >> "${APP_DOTENV}"
+  echo "LICHESS_TOKEN=${LICHESS_TOKEN}"                 >> "${APP_DOTENV}"
   echo "SESSION_SECRET=${SECRET}"                       >> "${APP_DOTENV}"
-
-  cp ${APP_DOTENV} ${SCR_DOTENV}
 
   # -- Setting up database
   echo "Setting up database"
