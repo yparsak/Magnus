@@ -55,10 +55,9 @@ async function fetchLichessGames(account) {
     return data
       .split(/\r?\n/)
       .filter(Boolean)
-      .map(line => {
-        const game = JSON.parse(line);
-        return { externalId: game.id, dateMs: game.createdAt, pgn: game.pgn };
-      });
+      .map(line => JSON.parse(line))
+      .filter(game => !game.variant || game.variant === 'standard')
+      .map(game => ({ externalId: game.id, dateMs: game.createdAt, pgn: game.pgn }));
 
   } catch (apiErr) {
     console.error(`API error for ${account.accountname}:`, apiErr.message);
@@ -123,6 +122,7 @@ async function fetchChesscomGames(account) {
 
     monthGames = monthGames
       .filter(game => !sinceMs || (game.end_time * 1000) > sinceMs)
+      .filter(game => !game.rules || game.rules === 'chess')
       .sort((a, b) => a.end_time - b.end_time);
 
     for (const game of monthGames) {
@@ -213,10 +213,14 @@ async function persistGames(conn, account, rawGames) {
 
       const game = buildGameRecord(account, rawGame);
 
-      const insertResult = await db.insertUserGame(conn, account, game);
+      if (!game.white || !game.black) {
+        console.log(`Skipping game with missing player for ${account.accountname}: ${rawGame.externalId}`);
+      } else {
+        const insertResult = await db.insertUserGame(conn, account, game);
 
-      if (insertResult.affectedRows > 0 && game.moves.length) {
-        await db.insertGameMoves(conn, insertResult.insertId, game.moves);
+        if (insertResult.affectedRows > 0 && game.moves.length) {
+          await db.insertGameMoves(conn, insertResult.insertId, game.moves);
+        }
       }
 
       // Advance last_scan past every game we looked at this batch (including

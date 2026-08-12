@@ -37,6 +37,8 @@ $(function () {
     var pageData = window.MAGNUS_PAGE_DATA || {};
     var fen = pageData.fen;
     var moves = pageData.moves;
+    var gameInfo = pageData.gameInfo;
+    var orientation = pageData.orientation || 'white';
 
     if (Array.isArray(moves) && moves.length) {
       // A stored game (?gameid=) -- replay it from the standard starting
@@ -63,6 +65,7 @@ $(function () {
     analysisBoard = Chessboard('board', {
       draggable: true,
       position: game.fen(),
+      orientation: orientation,
       pieceTheme: '/imgs/{piece}.png',
       onDragStart: onAnalysisDragStart,
       onDrop: onAnalysisDrop,
@@ -78,9 +81,61 @@ $(function () {
       window.PromotionLayer.init(analysisBoard);
     }
 
+    renderGameInfo(gameInfo, orientation);
     renderMoveList();
     $('#fenInput').val(game.fen());
     refreshEnginePanel();
+  }
+
+  // Single choke point for "is this an archive game or a fresh analysis" --
+  // populates the below-board game summary and the above/below-board player
+  // labels when gameInfo is present (a loaded ?gameid=), or clears/hides them
+  // otherwise so a fresh analysis board only shows the Opening Book section.
+  function renderGameInfo(gameInfo, orientation) {
+    var $details = $('#gameInfoDetails');
+    var $top = $('#playerNameTop');
+    var $bottom = $('#playerNameBottom');
+
+    if (!gameInfo) {
+      $details.empty().removeClass('visible');
+      $top.empty();
+      $bottom.empty();
+      return;
+    }
+
+    $details.empty();
+    appendGameInfoRow($details, 'White', formatPlayerName(gameInfo.white, gameInfo.whiteElo));
+    appendGameInfoRow($details, 'Black', formatPlayerName(gameInfo.black, gameInfo.blackElo));
+    appendGameInfoRow($details, 'Result', gameInfo.result || '--');
+    appendGameInfoRow($details, 'Termination', gameInfo.termination || '--');
+    appendGameInfoRow($details, 'Time control', gameInfo.timeControl || '--');
+    appendGameInfoRow($details, 'Date', formatGameDate(gameInfo.date));
+    $details.addClass('visible');
+
+    var whiteName = formatPlayerName(gameInfo.white, gameInfo.whiteElo);
+    var blackName = formatPlayerName(gameInfo.black, gameInfo.blackElo);
+    var bottomName = orientation === 'black' ? blackName : whiteName;
+    var topName = orientation === 'black' ? whiteName : blackName;
+    $top.text(topName);
+    $bottom.text(bottomName);
+  }
+
+  function appendGameInfoRow($container, label, value) {
+    var $row = $('<div>', { class: 'game-info-row' });
+    $row.append($('<span>', { class: 'game-info-label', text: label }));
+    $row.append($('<span>', { class: 'game-info-value', text: value }));
+    $container.append($row);
+  }
+
+  function formatPlayerName(name, elo) {
+    if (!name) {
+      return '--';
+    }
+    return elo ? name + ' (' + elo + ')' : name;
+  }
+
+  function formatGameDate(date) {
+    return date ? new Date(date).toLocaleDateString() : '--';
   }
 
   function bindControls() {

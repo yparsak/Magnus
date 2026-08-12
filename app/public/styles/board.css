@@ -94,13 +94,28 @@ div[class*="spare-pieces-"] {
 
 .center-column {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
 }
 
 .board-wrap {
     position: relative;
     width: 100%;
     max-width: 640px;
+}
+
+/* Above/below-board player labels for a loaded archive game (see
+   analysis.chess.js) -- unobtrusive, matches .engine-eval-status' tone.
+   Left empty/hidden for a fresh analysis board (no gameInfo to show). */
+.player-name {
+    color: #aaaaaa;
+    font-size: 13px;
+    padding: 4px 2px;
+}
+
+.player-name:empty {
+    display: none;
 }
 
 /* Overlay for annotation arrows/circles (see board-annotations.js). Sits
@@ -258,6 +273,54 @@ div[class*="spare-pieces-"] {
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+/* Below-board game summary (see analysis.chess.js). .game-info-details is
+   populated/shown only for a loaded archive game; "Opening Book" always
+   renders, since it's a placeholder for future opening-detection work. */
+.game-info-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    max-width: 640px;
+}
+
+.game-info-details {
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.game-info-details.visible {
+    display: flex;
+}
+
+.game-info-row {
+    display: flex;
+    gap: 8px;
+    padding: 2px 4px;
+}
+
+.game-info-label {
+    color: #808080;
+    width: 90px;
+}
+
+.game-info-value {
+    color: #d5d5d5;
+}
+
+.opening-book-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.opening-book-info {
+    color: #9a9a9a;
+    font-size: 14px;
+    padding: 2px 4px;
 }
 
 .move-list {

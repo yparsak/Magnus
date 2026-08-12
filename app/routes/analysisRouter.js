@@ -5,9 +5,9 @@ const { pool, getUserGameForUser, getGameMoves } = require('../lib/db');
 const { renderPage } = require('../lib/renderPage');
 const { isValidFen, gameMoveToMoveInfo } = require('../lib/chess');
 
-// Builds { moves: [...] } for a ?gameid= request, or null if the game
-// shouldn't be preloaded (not logged in, bad id, or not this user's game --
-// see getUserGameForUser for the ownership join). Mirrors the graceful
+// Builds { moves, gameInfo, orientation } for a ?gameid= request, or null if
+// the game shouldn't be preloaded (not logged in, bad id, or not this user's
+// game -- see getUserGameForUser for the ownership join). Mirrors the graceful
 // fallback the ?fen= path already uses: no match just means "don't preload".
 async function loadGamePageData(req) {
   var rawGameId = req.query.gameid;
@@ -23,7 +23,21 @@ async function loadGamePageData(req) {
   }
 
   var moveRows = await getGameMoves(userGame.id);
-  return { moves: moveRows.map(gameMoveToMoveInfo) };
+  return {
+    moves: moveRows.map(gameMoveToMoveInfo),
+    gameInfo: {
+      white: userGame.white,
+      whiteElo: userGame.white_elo,
+      black: userGame.black,
+      blackElo: userGame.black_elo,
+      result: userGame.result,
+      termination: userGame.termination,
+      timeControl: userGame.time_control,
+      date: userGame.date,
+      side: userGame.side
+    },
+    orientation: userGame.side === 0 ? 'black' : 'white'
+  };
 }
 
 router.get('/', async (req, res) => {
