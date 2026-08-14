@@ -435,18 +435,34 @@ $(function () {
   // matches the server-side cap in openingBook.js/findOpeningMatch.
   var OPENING_BOOK_MAX_PLIES = 20;
 
-  // Looks up the opening for the line currently being viewed, not just the
-  // main line -- tree.getPath follows whichever branch the tree is pointed
-  // at (see renderViewPosition), so browsing into a side line within the
-  // first 10 moves updates the display, while going deeper just freezes it
-  // at the last book move. Called on load and from every position-changing
-  // path (renderViewPosition, completeMove), same as refreshEnginePanel.
-  function refreshOpeningBook() {
-    var requestId = ++openingRequestSeq;
+  // Ancestor moves (the branch actually being viewed, from tree.getPath) plus
+  // whatever continues forward from the cursor along that line's own main
+  // continuation. Without the forward half, parking the cursor early in a
+  // stored game (e.g. ply 0, or just after move 1) would only see that many
+  // moves and report a shallow match (e.g. "King's Pawn" for 1.e4) instead of
+  // the deepest opening the line actually reaches within the first 10 moves.
+  function collectOpeningSanMoves() {
     var sanMoves = tree.getPath(tree.getCurrent())
       .filter(function (node) { return node.move !== null; })
-      .map(function (node) { return node.move.san; })
-      .slice(0, OPENING_BOOK_MAX_PLIES);
+      .map(function (node) { return node.move.san; });
+
+    var node = tree.getCurrent();
+    while (sanMoves.length < OPENING_BOOK_MAX_PLIES && node.children.length) {
+      node = node.children[0];
+      sanMoves.push(node.move.san);
+    }
+
+    return sanMoves.slice(0, OPENING_BOOK_MAX_PLIES);
+  }
+
+  // Looks up the opening for the line currently being viewed, not just the
+  // main line -- browsing into a side line within the first 10 moves updates
+  // the display to that branch's opening. Called on load and from every
+  // position-changing path (renderViewPosition, completeMove), same as
+  // refreshEnginePanel.
+  function refreshOpeningBook() {
+    var requestId = ++openingRequestSeq;
+    var sanMoves = collectOpeningSanMoves();
 
     window.ApiClient.detectOpening({ moves: sanMoves }).then(function (result) {
       if (requestId !== openingRequestSeq) {
