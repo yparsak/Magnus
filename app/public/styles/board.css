@@ -360,6 +360,31 @@ div[class*="spare-pieces-"] {
     color: #ffffff;
 }
 
+.move-san.move-mistake {
+    background: #8b0000;
+}
+
+.move-san.move-mistake:hover {
+    background: #a30000;
+}
+
+.move-san.move-mistake.active-move {
+    background: #8b0000;
+    box-shadow: inset 0 0 0 2px #2c73b8;
+}
+
+/* Engine eval shown next to a main-line move, e.g. "e4 (+0.46)". */
+.move-eval {
+    color: #c0c0c0;
+    margin-left: -4px;
+}
+
+/* Separates White's and Black's move+eval within a main-line row, e.g.
+   "1 e4 (+0.46) | c5 (+0.40)". */
+.move-separator {
+    color: #808080;
+}
+
 /* Side lines (variations): rendered as their own row directly under the
    move they branch from, indented and muted so the main line stays the
    visual focus. Nested variations reuse this same row (extra parens

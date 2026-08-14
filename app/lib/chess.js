@@ -90,10 +90,12 @@ function resolvePosition({ fen, moves } = {}) {
   return chess;
 }
 
-// Converts a `game_moves` row into the { san, from, to, promotion, color, fen }
-// shape the frontend move tree (move-tree.js) expects. `long_notation` is
-// chess.js "lan" notation: first 2 chars = from square, next 2 = to square,
-// 5th char (if present) = promotion piece letter. `side` is 1 = white, 0 = black.
+// Converts a `game_moves` row into the { san, from, to, promotion, color, fen,
+// eval, loss } shape the frontend move tree (move-tree.js) expects.
+// `long_notation` is chess.js "lan" notation: first 2 chars = from square,
+// next 2 = to square, 5th char (if present) = promotion piece letter. `side`
+// is 1 = white, 0 = black. `final_eval`/`loss` may be NULL for moves that
+// haven't been evaluated yet (see scripts/evaluateGames.js).
 function gameMoveToMoveInfo(row) {
   return {
     san: row.short_notation,
@@ -101,7 +103,9 @@ function gameMoveToMoveInfo(row) {
     to: row.long_notation.slice(2, 4),
     promotion: row.long_notation.length > 4 ? row.long_notation.charAt(4) : null,
     color: row.side ? 'w' : 'b',
-    fen: row.fen
+    fen: row.fen,
+    eval: row.final_eval,
+    loss: row.loss
   };
 }
 

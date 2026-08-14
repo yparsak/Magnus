@@ -1,14 +1,18 @@
 // =============================================================================
 // move-tree-view.js
 // Renders a MoveTree (see move-tree.js) into a container as a move list: the
-// main line as move-number/white/black rows (same shape as the page's
-// original flat move list), with side lines rendered as their own indented,
-// parenthesized rows directly under the move they branch from -- e.g.
+// main line as move-number/white/black rows -- each row showing the engine
+// eval next to a move when known (e.g. "1 e4 (+0.46) | c5 (+0.40)") -- with
+// side lines rendered as their own indented, parenthesized rows directly
+// under the move they branch from -- e.g.
 //   12. Nf3 Bc5
 //     (12. e4 d5 13. exd5 Qxd5)
 //   13. O-O ...
 // Nested variations (a side line off a side line) are rendered inline inside
-// their parent side line's row, in their own nested parentheses.
+// their parent side line's row, in their own nested parentheses. Variations
+// never carry eval/loss data (they're either live user moves or side lines
+// with no DB-backed evaluation), so they keep the plain "12." / "12..."
+// numbering and no eval/mistake styling.
 //
 // Takes the container element as a parameter rather than hardcoding a
 // page-specific id, so any future page rendering a MoveTree (saved-game
@@ -32,17 +36,49 @@
     return moveNumber + (isWhiteMove(node) ? '.' : '...');
   }
 
-  function buildMoveSpan(node, currentNode) {
+  // Main-line move numbers have no trailing "."/"..." (e.g. "1", not "1."),
+  // unlike moveNumberLabel() above which is only used for variation rows.
+  function mainLineMoveNumber(node) {
+    return Math.ceil(node.ply / 2);
+  }
+
+  // Formats a pawns-from-White's-perspective eval (e.g. 0.46, -1.2) the same
+  // way formatEngineScore() in analysis.chess.js formats engine scores: 2
+  // decimal places, with a leading "+" for positive values.
+  function formatMoveEval(evalValue) {
+    var pawns = Number(evalValue).toFixed(2);
+    return (evalValue > 0 ? '+' : '') + pawns;
+  }
+
+  function buildMoveSpan(node, currentNode, options) {
+    var opts = options || {};
     var $span = $('<span>', { class: 'move-san', text: node.move.san });
     $span.data('node', node);
     if (node === currentNode) {
       $span.addClass('active-move');
     }
+    if (opts.showMistake && node.move.loss === 3) {
+      $span.addClass('move-mistake');
+    }
     return $span;
+  }
+
+  // Appends "(<eval>)" after a main-line move's SAN span, silver-colored via
+  // .move-eval -- omitted entirely when the move has no eval (not yet
+  // evaluated, or a live move dragged onto the board).
+  function appendEvalSpan($row, evalValue) {
+    if (evalValue === null || evalValue === undefined) {
+      return;
+    }
+    $row.append($('<span>', { class: 'move-eval', text: '(' + formatMoveEval(evalValue) + ')' }));
   }
 
   function buildParenSpan(text) {
     return $('<span>', { class: 'variation-paren', text: text });
+  }
+
+  function buildSeparatorSpan() {
+    return $('<span>', { class: 'move-separator', text: '|' });
   }
 
   // Walks the main-line continuation from `parentNode`, one move-row per
@@ -59,9 +95,12 @@
       if (!$row || isWhiteMove(mainChild)) {
         $row = $('<div>', { class: 'move-row' });
         $container.append($row);
-        $row.append($('<span>', { class: 'move-number', text: moveNumberLabel(mainChild) }));
+        $row.append($('<span>', { class: 'move-number', text: mainLineMoveNumber(mainChild) }));
+      } else {
+        $row.append(buildSeparatorSpan());
       }
-      $row.append(buildMoveSpan(mainChild, currentNode));
+      $row.append(buildMoveSpan(mainChild, currentNode, { showMistake: true }));
+      appendEvalSpan($row, mainChild.move.eval);
 
       if (parent.children.length > 1) {
         parent.children.slice(1).forEach(function (variationStart) {
