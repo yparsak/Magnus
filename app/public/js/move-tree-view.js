@@ -1,9 +1,9 @@
 // =============================================================================
 // move-tree-view.js
 // Renders a MoveTree (see move-tree.js) into a container as a move list: the
-// main line as move-number/white/black rows -- each row showing the engine
-// eval next to a move when known (e.g. "1 e4 (+0.46) | c5 (+0.40)") -- with
-// side lines rendered as their own indented, parenthesized rows directly
+// main line as move-number/white/black rows, each side's move+eval in its
+// own equal-width column (e.g. "1  e4 (+0.46)  c5 (+0.40)") -- with side
+// lines rendered as their own indented, parenthesized rows directly
 // under the move they branch from -- e.g.
 //   12. Nf3 Bc5
 //     (12. e4 d5 13. exd5 Qxd5)
@@ -77,8 +77,15 @@
     return $('<span>', { class: 'variation-paren', text: text });
   }
 
-  function buildSeparatorSpan() {
-    return $('<span>', { class: 'move-separator', text: '|' });
+  // A main-line move + its eval, grouped into one grid cell so the SAN sits
+  // left and the eval sits right within that cell (see .move-cell in
+  // board.css) -- this is what keeps White's and Black's columns the same
+  // width across rows regardless of how long either side's SAN/eval text is.
+  function buildMoveCell(node, currentNode) {
+    var $cell = $('<div>', { class: 'move-cell' });
+    $cell.append(buildMoveSpan(node, currentNode, { showMistake: true }));
+    appendEvalSpan($cell, node.move.eval);
+    return $cell;
   }
 
   // Walks the main-line continuation from `parentNode`, one move-row per
@@ -96,11 +103,8 @@
         $row = $('<div>', { class: 'move-row' });
         $container.append($row);
         $row.append($('<span>', { class: 'move-number', text: mainLineMoveNumber(mainChild) }));
-      } else {
-        $row.append(buildSeparatorSpan());
       }
-      $row.append(buildMoveSpan(mainChild, currentNode, { showMistake: true }));
-      appendEvalSpan($row, mainChild.move.eval);
+      $row.append(buildMoveCell(mainChild, currentNode));
 
       if (parent.children.length > 1) {
         parent.children.slice(1).forEach(function (variationStart) {

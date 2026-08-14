@@ -334,14 +334,25 @@ div[class*="spare-pieces-"] {
 }
 
 .move-row {
-    display: flex;
+    align-items: center;
+    display: grid;
     gap: 8px;
+    grid-template-columns: 28px 1fr 1fr;
     padding: 2px 4px;
 }
 
 .move-number {
     color: #808080;
-    width: 28px;
+}
+
+/* Groups a move's SAN with its eval so the SAN stays left and the eval
+   stays right within its half of the row -- keeps White's and Black's
+   columns the same width across rows regardless of text length. */
+.move-cell {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    min-width: 0;
 }
 
 .move-san {
@@ -373,16 +384,10 @@ div[class*="spare-pieces-"] {
     box-shadow: inset 0 0 0 2px #2c73b8;
 }
 
-/* Engine eval shown next to a main-line move, e.g. "e4 (+0.46)". */
+/* Engine eval shown next to a main-line move, e.g. "e4 (+0.46)". Pushed to
+   the right edge of its .move-cell by that cell's space-between layout. */
 .move-eval {
     color: #c0c0c0;
-    margin-left: -4px;
-}
-
-/* Separates White's and Black's move+eval within a main-line row, e.g.
-   "1 e4 (+0.46) | c5 (+0.40)". */
-.move-separator {
-    color: #808080;
 }
 
 /* Side lines (variations): rendered as their own row directly under the
@@ -390,6 +395,7 @@ div[class*="spare-pieces-"] {
    visual focus. Nested variations reuse this same row (extra parens
    appended inline), so no deeper indentation is needed. */
 .variation-row {
+    display: flex;
     flex-wrap: wrap;
     margin-left: 18px;
     row-gap: 2px;
