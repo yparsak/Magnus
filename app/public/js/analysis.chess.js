@@ -89,14 +89,20 @@ $(function () {
     renderGameInfo(gameInfo, orientation);
     if (pageData.opening) {
       // A stored game already has its opening resolved server-side (see
-      // analysisRouter.js) -- paint it immediately rather than waiting on
-      // refreshOpeningBook's round trip below.
+      // analysisRouter.js, which persists book_id from the game's actual
+      // recorded moves) -- that's authoritative for the game as played, so
+      // paint it directly and skip the live-detection round trip below. It
+      // still kicks in the moment the user navigates (completeMove /
+      // renderViewPosition), e.g. into a side line.
       renderOpeningBook(pageData.opening);
+    } else {
+      // A fresh analysis board (no stored game, or no opening resolved) --
+      // nothing to show yet until moves are played.
+      refreshOpeningBook();
     }
     renderMoveList();
     $('#fenInput').val(game.fen());
     refreshEnginePanel();
-    refreshOpeningBook();
   }
 
   // Single choke point for "is this an archive game or a fresh analysis" --
