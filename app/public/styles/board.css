@@ -298,14 +298,20 @@ div[class*="spare-pieces-"] {
 
 .game-info-row {
     display: flex;
-    gap: 8px;
-    padding: 2px 4px;
+    gap: 20px;
 }
 
+.game-info-column{
+    flex: 1;
+    display: flex;
+}
 .game-info-label {
+    flex: 1;
+    flex-direction: column;
     color: #808080;
     width: 90px;
 }
+
 
 .game-info-value {
     color: #d5d5d5;

@@ -104,12 +104,12 @@ $(function () {
     }
 
     $details.empty();
-    appendGameInfoRow($details, 'White', formatPlayerName(gameInfo.white, gameInfo.whiteElo));
-    appendGameInfoRow($details, 'Black', formatPlayerName(gameInfo.black, gameInfo.blackElo));
-    appendGameInfoRow($details, 'Result', gameInfo.result || '--');
-    appendGameInfoRow($details, 'Termination', gameInfo.termination || '--');
-    appendGameInfoRow($details, 'Time control', gameInfo.timeControl || '--');
-    appendGameInfoRow($details, 'Date', formatGameDate(gameInfo.date));
+    appendGameInfoRow($details, 'Date',  formatGameDate(gameInfo.date),
+                                'Time control', gameInfo.timeControl || '--');
+    appendGameInfoRow($details, 'White', formatPlayerName(gameInfo.white, gameInfo.whiteElo),
+                                'Black', formatPlayerName(gameInfo.black, gameInfo.blackElo));
+    appendGameInfoRow($details, 'Result', gameInfo.result || '--',
+                                'Termination', gameInfo.termination || '--');
     $details.addClass('visible');
 
     var whiteName = formatPlayerName(gameInfo.white, gameInfo.whiteElo);
@@ -120,10 +120,32 @@ $(function () {
     $bottom.text(bottomName);
   }
 
-  function appendGameInfoRow($container, label, value) {
+  function appendGameInfoRow($container, label1, value1, label2, value2) {
     var $row = $('<div>', { class: 'game-info-row' });
-    $row.append($('<span>', { class: 'game-info-label', text: label }));
-    $row.append($('<span>', { class: 'game-info-value', text: value }));
+
+    var $column1 = $('<div>', { class: 'game-info-column' });
+    $column1.append($('<span>', {
+        class: 'game-info-label',
+        text: label1
+    }));
+    $column1.append($('<span>', {
+        class: 'game-info-value',
+        text: value1
+    }));
+
+    var $column2 = $('<div>', { class: 'game-info-column' });
+    $column2.append($('<span>', {
+        class: 'game-info-label',
+        text: label2
+    }));
+    $column2.append($('<span>', {
+        class: 'game-info-value',
+        text: value2
+    }));
+
+    $row.append($column1);
+    $row.append($column2);
+
     $container.append($row);
   }
 
