@@ -106,8 +106,8 @@ $(function () {
     $details.empty();
     appendGameInfoRow($details, 'Date',  formatGameDate(gameInfo.date),
                                 'Time control', gameInfo.timeControl || '--');
-    appendGameInfoRow($details, 'White', formatPlayerName(gameInfo.white, gameInfo.whiteElo),
-                                'Black', formatPlayerName(gameInfo.black, gameInfo.blackElo));
+//    appendGameInfoRow($details, 'White', formatPlayerName(gameInfo.white, gameInfo.whiteElo),
+//                                'Black', formatPlayerName(gameInfo.black, gameInfo.blackElo));
     appendGameInfoRow($details, 'Result', gameInfo.result || '--',
                                 'Termination', gameInfo.termination || '--');
     $details.addClass('visible');
