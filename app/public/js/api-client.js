@@ -34,8 +34,14 @@
     return postJson('/api/engine/bestmove', params);
   }
 
+  // { opening: { eco, name } | null }
+  function detectOpening(params) {
+    return postJson('/api/opening/detect', params);
+  }
+
   window.ApiClient = {
     getEngineEval: getEngineEval,
-    getEngineBestMoves: getEngineBestMoves
+    getEngineBestMoves: getEngineBestMoves,
+    detectOpening: detectOpening
   };
 })();

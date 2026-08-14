@@ -96,6 +96,31 @@ async function getGameMoves(gameId) {
   return rows;
 }
 
+async function getOpeningBookById(id) {
+  const [rows] = await pool.query(
+    'SELECT id, eco, name FROM opening_book WHERE id = ? LIMIT 1;',
+    [id]
+  );
+  return rows.length ? rows[0] : null;
+}
+
+// Mirrors scripts/evaluateGames.js's own lookup for the sentinel "no known
+// opening" row, so this file and that batch job agree on which row means
+// "unrecognized" when stamping user_games.book_id.
+async function getFallbackOpeningBookId() {
+  const [rows] = await pool.query(
+    "SELECT id FROM opening_book WHERE eco = '?' LIMIT 1;"
+  );
+  return rows.length ? rows[0].id : null;
+}
+
+async function setUserGameBookId(gameId, bookId) {
+  await pool.query(
+    'UPDATE user_games SET book_id = ? WHERE id = ?;',
+    [bookId, gameId]
+  );
+}
+
 module.exports = { pool,
                    testConnection,
                    getPlatforms,
@@ -105,6 +130,9 @@ module.exports = { pool,
                    insertUserAccount,
                    getUserGameForUser,
                    getLatestUserGames,
-                   getGameMoves
+                   getGameMoves,
+                   getOpeningBookById,
+                   getFallbackOpeningBookId,
+                   setUserGameBookId
                  };
 

@@ -30,6 +30,11 @@ $(function () {
   // with a stale position's data.
   var engineRequestSeq = 0;
 
+  // Bumped on every opening-book fetch; same stale-response guard as
+  // engineRequestSeq above, for the same reason (fast navigation vs. an
+  // in-flight request).
+  var openingRequestSeq = 0;
+
   initAnalysis();
   bindControls();
 
@@ -82,9 +87,16 @@ $(function () {
     }
 
     renderGameInfo(gameInfo, orientation);
+    if (pageData.opening) {
+      // A stored game already has its opening resolved server-side (see
+      // analysisRouter.js) -- paint it immediately rather than waiting on
+      // refreshOpeningBook's round trip below.
+      renderOpeningBook(pageData.opening);
+    }
     renderMoveList();
     $('#fenInput').val(game.fen());
     refreshEnginePanel();
+    refreshOpeningBook();
   }
 
   // Single choke point for "is this an archive game or a fresh analysis" --
@@ -262,6 +274,7 @@ $(function () {
     renderMoveList();
     $('#fenInput').val(game.fen());
     refreshEnginePanel();
+    refreshOpeningBook();
 
     if (window.BoardAnnotations) {
       window.BoardAnnotations.clear();
@@ -278,6 +291,7 @@ $(function () {
     analysisBoard.position(node.fen, false);
     $('#fenInput').val(node.fen);
     refreshEnginePanel();
+    refreshOpeningBook();
 
     if (window.BoardAnnotations) {
       window.BoardAnnotations.clear();
@@ -415,6 +429,47 @@ $(function () {
     $('#engineEvalScore').text('--');
     $('#engineEvalStatus').text('Engine unavailable');
     $('#engineMoveList').empty();
+  }
+
+  // Opening detection is capped at the first 10 full moves (20 plies) --
+  // matches the server-side cap in openingBook.js/findOpeningMatch.
+  var OPENING_BOOK_MAX_PLIES = 20;
+
+  // Looks up the opening for the line currently being viewed, not just the
+  // main line -- tree.getPath follows whichever branch the tree is pointed
+  // at (see renderViewPosition), so browsing into a side line within the
+  // first 10 moves updates the display, while going deeper just freezes it
+  // at the last book move. Called on load and from every position-changing
+  // path (renderViewPosition, completeMove), same as refreshEnginePanel.
+  function refreshOpeningBook() {
+    var requestId = ++openingRequestSeq;
+    var sanMoves = tree.getPath(tree.getCurrent())
+      .filter(function (node) { return node.move !== null; })
+      .map(function (node) { return node.move.san; })
+      .slice(0, OPENING_BOOK_MAX_PLIES);
+
+    window.ApiClient.detectOpening({ moves: sanMoves }).then(function (result) {
+      if (requestId !== openingRequestSeq) {
+        return; // a newer request has since been fired -- drop this stale one
+      }
+      renderOpeningBook(result.opening);
+    }).catch(function () {
+      if (requestId !== openingRequestSeq) {
+        return;
+      }
+      renderOpeningBook(null);
+    });
+  }
+
+  function renderOpeningBook(opening) {
+    var $info = $('#openingBookInfo');
+    if (!opening) {
+      $info.text('Not yet available');
+    } else if (opening.eco === '?') {
+      $info.text('Unrecognized opening');
+    } else {
+      $info.text(opening.eco + ' – ' + opening.name);
+    }
   }
 
   // Reuses the exact same tail end a drag-to-move uses (completeMove), so a

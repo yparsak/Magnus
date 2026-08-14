@@ -1,14 +1,46 @@
 const express = require('express');
 const router = express.Router();
-const { pool, getUserGameForUser, getGameMoves } = require('../lib/db');
+const {
+  pool,
+  getUserGameForUser,
+  getGameMoves,
+  getOpeningBookById,
+  getFallbackOpeningBookId,
+  setUserGameBookId
+} = require('../lib/db');
 
 const { renderPage } = require('../lib/renderPage');
 const { isValidFen, gameMoveToMoveInfo } = require('../lib/chess');
+const { findOpeningMatch } = require('../lib/openingBook');
 
-// Builds { moves, gameInfo, orientation } for a ?gameid= request, or null if
-// the game shouldn't be preloaded (not logged in, bad id, or not this user's
-// game -- see getUserGameForUser for the ownership join). Mirrors the graceful
-// fallback the ?fen= path already uses: no match just means "don't preload".
+// Resolves the opening for a stored game, persisting book_id the first time
+// (mirrors scripts/evaluateGames.js's own convention of stamping the '?'
+// sentinel when nothing matches, so this only runs once per game rather than
+// re-querying opening_book on every page load).
+async function resolveGameOpening(userGame, moveRows) {
+  if (userGame.book_id) {
+    return getOpeningBookById(userGame.book_id);
+  }
+
+  var sanMoves = moveRows.map((row) => row.short_notation);
+  var match = await findOpeningMatch(pool, sanMoves, 10);
+  if (match) {
+    await setUserGameBookId(userGame.id, match.id);
+    return { eco: match.eco, name: match.name };
+  }
+
+  var fallbackId = await getFallbackOpeningBookId();
+  if (fallbackId) {
+    await setUserGameBookId(userGame.id, fallbackId);
+  }
+  return { eco: '?', name: '?' };
+}
+
+// Builds { moves, gameInfo, orientation, opening } for a ?gameid= request, or
+// null if the game shouldn't be preloaded (not logged in, bad id, or not this
+// user's game -- see getUserGameForUser for the ownership join). Mirrors the
+// graceful fallback the ?fen= path already uses: no match just means "don't
+// preload".
 async function loadGamePageData(req) {
   var rawGameId = req.query.gameid;
   var isLoggedIn = Boolean(req.session && req.session.user);
@@ -36,7 +68,8 @@ async function loadGamePageData(req) {
       date: userGame.date,
       side: userGame.side
     },
-    orientation: userGame.side === 0 ? 'black' : 'white'
+    orientation: userGame.side === 0 ? 'black' : 'white',
+    opening: await resolveGameOpening(userGame, moveRows)
   };
 }
 
