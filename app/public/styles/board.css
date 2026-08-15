@@ -118,6 +118,16 @@ div[class*="spare-pieces-"] {
     display: none;
 }
 
+/* Tight wrapper around #board only (no toolbar/player-name rows) so that
+   position: absolute overlays sized to 100%/100% here -- the annotations
+   layer and the promotion picker -- always exactly cover the board itself,
+   regardless of whatever else .board-wrap grows to contain around it (e.g.
+   the prev/next move toolbar). See board-annotations.js and
+   promotion-layer.js, both of which target this element by default. */
+.board-stack {
+    position: relative;
+}
+
 /* Overlay for annotation arrows/circles (see board-annotations.js). Sits
    above pieces (z-index: 100) so drawings stay visible over them, but never
    intercepts pointer events -- the drawing module listens on #board itself. */

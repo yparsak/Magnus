@@ -36,7 +36,12 @@
   function init(boardInstance, options) {
     var opts = options || {};
     boardEl = document.querySelector(opts.boardSelector || '#board');
-    wrapEl = document.querySelector(opts.wrapSelector || '.board-wrap');
+    // .board-stack is a tight wrapper containing only #board (no toolbar or
+    // player-name rows), so its box always matches the board's box exactly --
+    // see board.css. Anchoring the overlay there (rather than the larger
+    // .board-wrap) keeps circles/arrows aligned regardless of what else gets
+    // added around the board.
+    wrapEl = document.querySelector(opts.wrapSelector || '.board-stack');
     if (!boardEl || !wrapEl) {
       return;
     }

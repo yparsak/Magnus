@@ -29,7 +29,12 @@
 
   function init(boardInstance, options) {
     var opts = options || {};
-    wrapEl = document.querySelector(opts.wrapSelector || '.board-wrap');
+    // .board-stack is a tight wrapper containing only #board (no toolbar or
+    // player-name rows), so its box always matches the board's box exactly --
+    // see board.css. Anchoring the picker there (rather than the larger
+    // .board-wrap) keeps the promotion squares aligned with the real board
+    // regardless of what else gets added around it.
+    wrapEl = document.querySelector(opts.wrapSelector || '.board-stack');
     board = boardInstance;
   }
 

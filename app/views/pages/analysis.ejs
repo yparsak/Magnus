@@ -17,12 +17,14 @@
       </aside>
       <main class="center-column">
         <div class="board-wrap">
-          <div class="player-name player-name-top" id="playerNameTop"></div>
           <div class="board-toolbar board-nav-toolbar">
             <button type="button" id="prevMoveBtn" class="nav-tool-btn" title="Previous move" aria-label="Previous move">&#8249;</button>
             <button type="button" id="nextMoveBtn" class="nav-tool-btn" title="Next move" aria-label="Next move">&#8250;</button>
           </div>
-          <div id="board" class="board-container"></div>
+          <div class="player-name player-name-top" id="playerNameTop"></div>
+          <div class="board-stack">
+            <div id="board" class="board-container"></div>
+          </div>
           <div class="player-name player-name-bottom" id="playerNameBottom"></div>
         </div>
         <div class="game-info-panel" id="gameInfoPanel">
