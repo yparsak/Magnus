@@ -88,6 +88,8 @@ CREATE TABLE IF NOT EXISTS user_games (
   `termination` varchar(255) DEFAULT NULL,
   `points` tinyint(4) DEFAULT NULL,
   `result` varchar(10) DEFAULT NULL,
+  `white_accuracy` tinyint(4) DEFAULT NULL,
+  `black_accuracy` tinyint(4) DEFAULT NULL,
   `time_control` varchar(50) DEFAULT NULL,
   `white` varchar(50) DEFAULT NULL,
   `white_elo` smallint(6) DEFAULT NULL,

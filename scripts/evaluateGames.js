@@ -81,6 +81,18 @@ function classifyLoss(prevBest, currentEval, side, isMate) {
   else                      return 0;  // accurate
 }
 
+// ---------------------------------------------------------------------------
+// movAccuracy(winPercentLoss)
+//
+// Lichess per-move accuracy formula: converts the drop in the mover's own
+// win% (already clamped to >= 0 by the caller) into a 0-100 accuracy score
+// for that single move.
+// ---------------------------------------------------------------------------
+function movAccuracy(winPercentLoss) {
+  const accuracy = 103.1668 * Math.exp(-0.04354 * winPercentLoss) - 3.1668 + 1;
+  return Math.max(0, Math.min(100, accuracy));
+}
+
 async function main() {
   while (true) {
     const startTime = Date.now();
@@ -124,6 +136,14 @@ async function main() {
         // Eval tracking — seed with the standard opening eval (White's perspective)
         let prevBest = 0.21;
 
+        // Per-side accuracy accumulators (sum of per-move accuracies + count
+        // of classifiable moves), used to derive white_accuracy/black_accuracy
+        // once the move loop finishes.
+        let whiteAccuracySum   = 0;
+        let whiteAccuracyCount = 0;
+        let blackAccuracySum   = 0;
+        let blackAccuracyCount = 0;
+
         for (const move of moves) {
           const side = parseInt(move.side);
 
@@ -163,18 +183,47 @@ async function main() {
             console.error(`Error updating move ${move.id}:`, err);
           }
 
+          // Accumulate this move's accuracy for the mover's side, using the
+          // same prevBest/currentEval/side already used by classifyLoss above
+          // (skip unclassifiable moves the same way classifyLoss does).
+          if (lossResult !== null) {
+            const winPctBefore = side === 1
+              ? 50 * (1 + winningChances(prevBest))
+              : 50 * (1 - winningChances(prevBest));
+            const winPctAfter = side === 1
+              ? 50 * (1 + winningChances(currentEval))
+              : 50 * (1 - winningChances(currentEval));
+            const winPercentLoss = Math.max(0, winPctBefore - winPctAfter);
+            const moveAccuracy   = movAccuracy(winPercentLoss);
+
+            if (side === 1) {
+              whiteAccuracySum += moveAccuracy;
+              whiteAccuracyCount++;
+            } else {
+              blackAccuracySum += moveAccuracy;
+              blackAccuracyCount++;
+            }
+          }
+
           // Advance prevBest for the next move. If the move was unclassifiable
           // (checkmate delivered), keep prevBest as-is.
           if (lossResult !== null) prevBest = currentEval;
         }
 
-        // Stamp the detected opening on the game
+        const whiteAccuracy = whiteAccuracyCount > 0
+          ? Math.round(whiteAccuracySum / whiteAccuracyCount)
+          : null;
+        const blackAccuracy = blackAccuracyCount > 0
+          ? Math.round(blackAccuracySum / blackAccuracyCount)
+          : null;
+
+        // Stamp the detected opening and per-side accuracy on the game
         try {
           await conn.execute(
-            'UPDATE user_games SET book_id = ? WHERE id = ?',
-            [lastBookId, gameId]
+            'UPDATE user_games SET book_id = ?, white_accuracy = ?, black_accuracy = ? WHERE id = ?',
+            [lastBookId, whiteAccuracy, blackAccuracy, gameId]
           );
-          console.log(`Updated Game (${gameId}) with book_id: ${lastBookId}`);
+          console.log(`Updated Game (${gameId}) with book_id: ${lastBookId}, white_accuracy: ${whiteAccuracy}, black_accuracy: ${blackAccuracy}`);
         } catch (err) {
           console.error(`Error updating opening for game ${gameId}:`, err);
         }

@@ -60,8 +60,10 @@ async function loadGamePageData(req) {
     gameInfo: {
       white: userGame.white,
       whiteElo: userGame.white_elo,
+      whiteAccuracy: userGame.white_accuracy,
       black: userGame.black,
       blackElo: userGame.black_elo,
+      blackAccuracy: userGame.black_accuracy,
       result: userGame.result,
       termination: userGame.termination,
       timeControl: userGame.time_control,

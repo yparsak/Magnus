@@ -140,8 +140,8 @@ $(function () {
                                 'Termination', gameInfo.termination || '--');
     $details.addClass('visible');
 
-    var whiteName = formatPlayerName(gameInfo.white, gameInfo.whiteElo);
-    var blackName = formatPlayerName(gameInfo.black, gameInfo.blackElo);
+    var whiteName = formatPlayerName(gameInfo.white, gameInfo.whiteElo, gameInfo.whiteAccuracy);
+    var blackName = formatPlayerName(gameInfo.black, gameInfo.blackElo, gameInfo.blackAccuracy);
     var bottomName = orientation === 'black' ? blackName : whiteName;
     var topName = orientation === 'black' ? whiteName : blackName;
     $top.text(topName);
@@ -177,11 +177,12 @@ $(function () {
     $container.append($row);
   }
 
-  function formatPlayerName(name, elo) {
+  function formatPlayerName(name, elo, accuracy) {
     if (!name) {
       return '--';
     }
-    return elo ? name + ' (' + elo + ')' : name;
+    var label = elo ? name + ' (' + elo + ')' : name;
+    return accuracy != null ? label + ' [%' + accuracy + ']' : label;
   }
 
   function formatGameDate(date) {
