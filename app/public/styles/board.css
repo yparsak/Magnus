@@ -164,6 +164,19 @@ div[class*="spare-pieces-"] {
     width: 85%;
 }
 
+/* Tap-to-move selection (see analysis.chess.js) -- lets touch users tap a
+   piece then tap a destination square instead of dragging. Reuses the same
+   stable "square-<algebraic>" class chessboard.js renders on every square
+   div, so this stays correct across re-renders even though chessboard.js
+   also assigns each square a random internal id. */
+.square-selected {
+    box-shadow: inset 0 0 3px 3px #2c73b8;
+}
+
+.square-legal-target {
+    box-shadow: inset 0 0 0 3px rgba(44, 115, 184, 0.65);
+}
+
 .board-toolbar {
     display: flex;
     gap: 8px;
@@ -189,6 +202,36 @@ div[class*="spare-pieces-"] {
 .edit-tool-btn.active {
     background: #2c73b8;
     border-color: #2c73b8;
+}
+
+/* Prev/Next move buttons above the analysis board (see analysis.chess.js).
+   Sits in the same .board-toolbar row layout as the editor's tool buttons
+   above, just sized down (~40px) and styled as plain nav arrows rather than
+   icon-image tools. */
+.nav-tool-btn {
+    align-items: center;
+    background: #1a1a1a;
+    border: 1px solid #3b3b3b;
+    border-radius: 4px;
+    color: #d5d5d5;
+    cursor: pointer;
+    display: flex;
+    font-size: 22px;
+    height: 40px;
+    justify-content: center;
+    line-height: 1;
+    width: 40px;
+}
+
+.nav-tool-btn:hover:not(:disabled) {
+    background: #2c73b8;
+    border-color: #2c73b8;
+    color: #ffffff;
+}
+
+.nav-tool-btn:disabled {
+    cursor: default;
+    opacity: 0.35;
 }
 
 .editor-panel {
@@ -262,7 +305,35 @@ div[class*="spare-pieces-"] {
 }
 
 .fen-input {
+    flex: 1;
+    min-width: 0;
     width: 100%;
+}
+
+/* Copy-FEN button (see analysis.chess.js) -- sits next to the read-only FEN
+   field in .game-info-row. .copied is toggled briefly on click for the
+   "Copied!" feedback state. */
+.copy-fen-btn {
+    background: #1a1a1a;
+    border: 1px solid #808080;
+    border-radius: 4px;
+    color: #d5d5d5;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 13px;
+    padding: 8px 12px;
+}
+
+.copy-fen-btn:hover {
+    background: #2c73b8;
+    border-color: #2c73b8;
+    color: #ffffff;
+}
+
+.copy-fen-btn.copied {
+    background: #2f8f4e;
+    border-color: #2f8f4e;
+    color: #ffffff;
 }
 
 .analysis-panel {

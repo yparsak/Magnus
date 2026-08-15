@@ -317,8 +317,28 @@ tbody td{
     .layout{
         grid-template-columns:1fr;
     }
+
+    /* Phone-width: stack the three-panel analysis layout vertically
+       instead of hiding the side panels -- center (board) on top,
+       left (opening book / engine) in the middle, right (move list)
+       on the bottom. */
+    .layout-three{
+        display:flex;
+        flex-direction:column;
+    }
+
+    .center-column{
+        order:1;
+    }
+
     .left-panel{
-        display:none;
+        display:block;
+        order:2;
+    }
+
+    .right-panel{
+        display:block;
+        order:3;
     }
 }
 

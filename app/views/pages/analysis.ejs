@@ -18,6 +18,10 @@
       <main class="center-column">
         <div class="board-wrap">
           <div class="player-name player-name-top" id="playerNameTop"></div>
+          <div class="board-toolbar board-nav-toolbar">
+            <button type="button" id="prevMoveBtn" class="nav-tool-btn" title="Previous move" aria-label="Previous move">&#8249;</button>
+            <button type="button" id="nextMoveBtn" class="nav-tool-btn" title="Next move" aria-label="Next move">&#8250;</button>
+          </div>
           <div id="board" class="board-container"></div>
           <div class="player-name player-name-bottom" id="playerNameBottom"></div>
         </div>
@@ -26,6 +30,7 @@
           <div class="game-info-row">
             <div class="game-info-label">FEN:</div>
             <input type="text" id="fenInput" class="editor-text-input fen-input" spellcheck="false" readonly>
+            <button type="button" id="copyFenBtn" class="copy-fen-btn" title="Copy FEN" aria-label="Copy FEN">Copy</button>
          </div>
         </div>
       </main>

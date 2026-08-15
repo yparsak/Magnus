@@ -35,6 +35,16 @@ $(function () {
   // in-flight request).
   var openingRequestSeq = 0;
 
+  // The square a tap-to-move interaction has currently picked up, or null if
+  // none -- see bindBoardTapToMove/handleSquareTap. Touch-only convenience;
+  // drag-and-drop (onAnalysisDrop) doesn't use this at all.
+  var selectedSquare = null;
+
+  // Timer for reverting the Copy FEN button's "Copied!" feedback state (see
+  // copyFenToClipboard) -- kept so a rapid second click resets the timeout
+  // instead of stacking multiple reverts.
+  var copyFenFeedbackTimer = null;
+
   initAnalysis();
   bindControls();
 
@@ -198,12 +208,133 @@ $(function () {
       }
     });
 
+    // Same navigation the move list already uses when a move is clicked
+    // (stepView -> tree.stepBack/stepForward) -- the toolbar buttons are
+    // just another entry point into it, not a separate nav implementation.
+    $('#prevMoveBtn').on('click', function () {
+      stepView(-1);
+    });
+    $('#nextMoveBtn').on('click', function () {
+      stepView(1);
+    });
+
+    $('#copyFenBtn').on('click', copyFenToClipboard);
+
+    bindBoardTapToMove();
+
     $(window).on('resize', function () {
       if (analysisBoard) analysisBoard.resize();
     });
   }
 
+  // Enables/disables the Previous/Next toolbar buttons to match whether the
+  // node the tree is currently pointed at has a parent/child to step to.
+  // Called from renderMoveList's single choke point, so it stays correct
+  // after every navigation path (arrow keys, toolbar buttons, move-list
+  // clicks, a completed drag/tap move, loading a stored game).
+  function updateNavButtons() {
+    var node = tree.getCurrent();
+    $('#prevMoveBtn').prop('disabled', !node.parent);
+    $('#nextMoveBtn').prop('disabled', node.children.length === 0);
+  }
+
+  function copyFenToClipboard() {
+    var fen = $('#fenInput').val();
+    navigator.clipboard.writeText(fen).then(function () {
+      showCopyFenFeedback();
+    });
+  }
+
+  function showCopyFenFeedback() {
+    var $btn = $('#copyFenBtn');
+    clearTimeout(copyFenFeedbackTimer);
+    $btn.addClass('copied').text('Copied!');
+    copyFenFeedbackTimer = setTimeout(function () {
+      $btn.removeClass('copied').text('Copy');
+    }, 1500);
+  }
+
+  // Tap-to-move: tapping a piece selects it (and highlights its legal
+  // destinations), then tapping a second square attempts that move. Reuses
+  // the exact same move-legality/completion path as drag-and-drop
+  // (isPromotionMove/handlePromotionMove/completeMove) so tapped moves land
+  // in the move tree identically to a dragged one. Delegated on '.square-
+  // 55d63' -- the same stable per-square class the board-editor's erase-mode
+  // click handler already relies on, so this coexists with chessboard.js's
+  // own drag handling without any extra wiring.
+  function bindBoardTapToMove() {
+    $('#board').on('click', '.square-55d63', function () {
+      var square = $(this).data('square');
+      if (square) {
+        handleSquareTap(square);
+      }
+    });
+  }
+
+  function handleSquareTap(square) {
+    if (!selectedSquare) {
+      trySelectSquare(square);
+      return;
+    }
+
+    if (square === selectedSquare) {
+      clearSquareSelection();
+      return;
+    }
+
+    if (isPromotionMove(selectedSquare, square)) {
+      var source = selectedSquare;
+      clearSquareSelection();
+      handlePromotionMove(source, square);
+      return;
+    }
+
+    var moveObj = game.move({ from: selectedSquare, to: square, promotion: 'q' });
+    if (moveObj === null) {
+      // Not a legal destination for the selected piece -- if the tapped
+      // square holds another piece of the side to move, treat this as
+      // switching the selection to it rather than just canceling.
+      clearSquareSelection();
+      trySelectSquare(square);
+      return;
+    }
+
+    clearSquareSelection();
+    completeMove(moveObj);
+    analysisBoard.position(game.fen());
+  }
+
+  function trySelectSquare(square) {
+    var piece = game.get(square);
+    if (game.game_over() || !piece || piece.color !== game.turn()) {
+      return;
+    }
+    selectedSquare = square;
+    highlightSelection(square);
+  }
+
+  function highlightSelection(square) {
+    $('#board .square-' + square).addClass('square-selected');
+    game.moves({ square: square, verbose: true }).forEach(function (move) {
+      $('#board .square-' + move.to).addClass('square-legal-target');
+    });
+  }
+
+  function clearSquareSelection() {
+    if (!selectedSquare) {
+      return;
+    }
+    $('#board .square-selected').removeClass('square-selected');
+    $('#board .square-legal-target').removeClass('square-legal-target');
+    selectedSquare = null;
+  }
+
   function onAnalysisDragStart(source, piece) {
+    // A tap-to-move selection may already be active (e.g. the user tapped a
+    // piece, then switched to dragging instead) -- clear it so its
+    // highlight doesn't linger through the drag.
+    clearSquareSelection();
+
     if (game.game_over()) {
       return false;
     }
@@ -282,6 +413,7 @@ $(function () {
     refreshEnginePanel();
     refreshOpeningBook();
 
+    clearSquareSelection();
     if (window.BoardAnnotations) {
       window.BoardAnnotations.clear();
     }
@@ -299,6 +431,7 @@ $(function () {
     refreshEnginePanel();
     refreshOpeningBook();
 
+    clearSquareSelection();
     if (window.BoardAnnotations) {
       window.BoardAnnotations.clear();
     }
@@ -350,6 +483,7 @@ $(function () {
     window.MoveTreeView.render($('#moveList')[0], tree, tree.getCurrent(), {
       onSelectNode: onMoveSelected
     });
+    updateNavButtons();
   }
 
   // Clicking a move in the tree jumps straight to it -- no ambiguity here,
