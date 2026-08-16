@@ -81,11 +81,43 @@ async function getLatestUserGames(userId, limit, offset = 0) {
     `SELECT ug.* FROM user_games ug
      JOIN accounts a ON a.id = ug.account_id AND a.platform_id = ug.platform_id
      JOIN user_accounts ua ON ua.account_id = a.id AND ua.user_id = ?
-     ORDER BY ug.date DESC
+     ORDER BY ug.date DESC, ug.id DESC
      LIMIT ? OFFSET ?;`,
     [userId, Number(limit), Number(offset)]
   );
   return rows;
+}
+
+// Returns the ids of the games immediately adjacent to (date, gameId) in
+// userId's game history, ordered the same way as getLatestUserGames (newest
+// first, same ownership join): prevGameId is the next-newer game (the row
+// just above this one in that list), nextGameId is the next-older game (the
+// row just below), either null if this is the first/last game. Comparing the
+// (date, id) tuple rather than date alone keeps this deterministic even when
+// two games share a `date` (the column isn't unique).
+async function getAdjacentUserGameIds(userId, date, gameId) {
+  const [prevRows] = await pool.query(
+    `SELECT ug.id FROM user_games ug
+     JOIN accounts a ON a.id = ug.account_id AND a.platform_id = ug.platform_id
+     JOIN user_accounts ua ON ua.account_id = a.id AND ua.user_id = ?
+     WHERE (ug.date, ug.id) > (?, ?)
+     ORDER BY ug.date ASC, ug.id ASC
+     LIMIT 1;`,
+    [userId, date, gameId]
+  );
+  const [nextRows] = await pool.query(
+    `SELECT ug.id FROM user_games ug
+     JOIN accounts a ON a.id = ug.account_id AND a.platform_id = ug.platform_id
+     JOIN user_accounts ua ON ua.account_id = a.id AND ua.user_id = ?
+     WHERE (ug.date, ug.id) < (?, ?)
+     ORDER BY ug.date DESC, ug.id DESC
+     LIMIT 1;`,
+    [userId, date, gameId]
+  );
+  return {
+    prevGameId: prevRows.length ? prevRows[0].id : null,
+    nextGameId: nextRows.length ? nextRows[0].id : null
+  };
 }
 
 async function getGameMoves(gameId) {
@@ -130,6 +162,7 @@ module.exports = { pool,
                    insertUserAccount,
                    getUserGameForUser,
                    getLatestUserGames,
+                   getAdjacentUserGameIds,
                    getGameMoves,
                    getOpeningBookById,
                    getFallbackOpeningBookId,

@@ -44,8 +44,13 @@
 
   // Formats a pawns-from-White's-perspective eval (e.g. 0.46, -1.2) the same
   // way formatEngineScore() in analysis.chess.js formats engine scores: 2
-  // decimal places, with a leading "+" for positive values.
-  function formatMoveEval(evalValue) {
+  // decimal places, with a leading "+" for positive values. A forced mate
+  // (mateIn set) instead renders as "M<mateIn>" (e.g. "M3", "M-3"), matching
+  // formatEngineScore()'s handling of `score.type === 'mate'` exactly.
+  function formatMoveEval(evalValue, mateIn) {
+    if (mateIn !== null && mateIn !== undefined) {
+      return 'M' + mateIn;
+    }
     var pawns = Number(evalValue).toFixed(2);
     return (evalValue > 0 ? '+' : '') + pawns;
   }
@@ -64,13 +69,13 @@
   }
 
   // Appends "(<eval>)" after a main-line move's SAN span, silver-colored via
-  // .move-eval -- omitted entirely when the move has no eval (not yet
-  // evaluated, or a live move dragged onto the board).
-  function appendEvalSpan($row, evalValue) {
-    if (evalValue === null || evalValue === undefined) {
+  // .move-eval -- omitted entirely when the move has no eval and no mateIn
+  // (not yet evaluated, or a live move dragged onto the board).
+  function appendEvalSpan($row, evalValue, mateIn) {
+    if ((evalValue === null || evalValue === undefined) && (mateIn === null || mateIn === undefined)) {
       return;
     }
-    $row.append($('<span>', { class: 'move-eval', text: '(' + formatMoveEval(evalValue) + ')' }));
+    $row.append($('<span>', { class: 'move-eval', text: '(' + formatMoveEval(evalValue, mateIn) + ')' }));
   }
 
   function buildParenSpan(text) {
@@ -84,7 +89,7 @@
   function buildMoveCell(node, currentNode) {
     var $cell = $('<div>', { class: 'move-cell' });
     $cell.append(buildMoveSpan(node, currentNode, { showMistake: true }));
-    appendEvalSpan($cell, node.move.eval);
+    appendEvalSpan($cell, node.move.eval, node.move.mateIn);
     return $cell;
   }
 

@@ -105,6 +105,7 @@ function gameMoveToMoveInfo(row) {
     color: row.side ? 'w' : 'b',
     fen: row.fen,
     eval: row.final_eval,
+    mateIn: row.mate_in,
     loss: row.loss
   };
 }

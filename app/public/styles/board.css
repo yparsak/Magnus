@@ -244,6 +244,18 @@ div[class*="spare-pieces-"] {
     opacity: 0.35;
 }
 
+/* Previous/Next Game links (see analysis.ejs) render as <a> when an adjacent
+   game exists and a non-clickable <span> otherwise -- :disabled doesn't
+   apply to either tag, so the "no adjacent game" case needs its own rule to
+   match the disabled look above. pointer-events: none also suppresses hover
+   on the <a> case, since :hover:not(:disabled) above would otherwise still
+   match it. */
+.nav-tool-btn[aria-disabled="true"] {
+    cursor: default;
+    opacity: 0.35;
+    pointer-events: none;
+}
+
 .editor-panel {
     display: flex;
     flex-direction: column;

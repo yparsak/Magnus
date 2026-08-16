@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS game_moves (
   `long_notation` varchar(15) NOT NULL,
   `side` tinyint(1) NOT NULL DEFAULT 1,
   `final_eval` decimal(10,2) DEFAULT NULL,
+  `mate_in` int(11) DEFAULT NULL,
   `incheck` tinyint(1) DEFAULT NULL,
   `mate` tinyint(1) DEFAULT NULL,
   `loss` tinyint(1) DEFAULT NULL,

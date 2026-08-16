@@ -232,7 +232,8 @@
 
   SECRET="$(generate_secret)"
 
-  echo "PORT=${PORT}"                                    > "${APP_DOTENV}"
+  echo "VERSION=${TAG_NAME}"                             > "${APP_DOTENV}"
+  echo "PORT=${PORT}"                                   >> "${APP_DOTENV}"
   echo "DB_HOST=localhost"                              >> "${APP_DOTENV}"
   echo "DB_PORT=${DB_PORT}"                             >> "${APP_DOTENV}"
   echo "DB_USER=${SUDO_USER,,}"                         >> "${APP_DOTENV}"

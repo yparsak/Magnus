@@ -167,6 +167,11 @@ async function main() {
           });
           const currentEval = evalToPawns(evaluation);
 
+          // Real signed mate distance (White's perspective), preserved
+          // alongside the ±100 evalToPawns() sentinel purely for display —
+          // classification below still relies on the sentinel.
+          const mateIn = evaluation.type === 'mate' ? evaluation.value : null;
+
           // Classify the move (null = unclassifiable, store as 0 = accurate)
           const lossResult      = classifyLoss(prevBest, currentEval, side, is_mate);
           const evalLossCategory = lossResult ?? 0;
@@ -174,8 +179,8 @@ async function main() {
           await conn.beginTransaction();
           try {
             await conn.execute(
-              'UPDATE game_moves SET incheck = ?, mate = ?, final_eval = ?, loss = ? WHERE id = ?',
-              [in_check, is_mate, currentEval, evalLossCategory, move.id]
+              'UPDATE game_moves SET incheck = ?, mate = ?, final_eval = ?, mate_in = ?, loss = ? WHERE id = ?',
+              [in_check, is_mate, currentEval, mateIn, evalLossCategory, move.id]
             );
             await conn.commit();
           } catch (err) {

@@ -215,10 +215,14 @@ tbody td{
 }
 .layout-three{
     display:grid;
+    /* Right column is 295px (not 280px like the left) -- .move-row's eval
+       column (see board.css) needs the extra ~15px so 3-digit evals like
+       "(+100.00)" (used for forced-mate positions) don't force a
+       horizontal scrollbar in the move list. */
     grid-template-columns:
         280px
         minmax(500px,1fr)
-        280px;
+        295px;
     gap:16px;
     padding:16px;
 }

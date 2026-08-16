@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   pool,
   getUserGameForUser,
+  getAdjacentUserGameIds,
   getGameMoves,
   getOpeningBookById,
   getFallbackOpeningBookId,
@@ -55,8 +56,11 @@ async function loadGamePageData(req) {
   }
 
   var moveRows = await getGameMoves(userGame.id);
+  var adjacentGameIds = await getAdjacentUserGameIds(req.session.user.id, userGame.date, userGame.id);
   return {
     moves: moveRows.map(gameMoveToMoveInfo),
+    prevGameId: adjacentGameIds.prevGameId,
+    nextGameId: adjacentGameIds.nextGameId,
     gameInfo: {
       white: userGame.white,
       whiteElo: userGame.white_elo,

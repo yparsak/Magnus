@@ -13,11 +13,14 @@
 //     parent: <node|null>,   // null only for the root
 //     children: [<node>...], // children[0] is the main-line continuation,
 //                             // children[1+] are side lines (variations)
-//     move: { san, from, to, promotion, color, eval, loss } | null, // null
-//                             // only for root. `eval` (pawns, White's
-//                             // perspective) and `loss` (0-3 accuracy
-//                             // category) are optional -- null unless this
-//                             // move came from an evaluated game_moves row.
+//     move: { san, from, to, promotion, color, eval, mateIn, loss } | null,
+//                             // null only for root. `eval` (pawns, White's
+//                             // perspective), `mateIn` (signed mate distance,
+//                             // White's perspective, set instead of `eval`
+//                             // when the position is a forced mate) and
+//                             // `loss` (0-3 accuracy category) are optional
+//                             // -- null unless this move came from an
+//                             // evaluated game_moves row.
 //     fen: '...',            // position after this node's move (or the
 //                             // starting fen, for the root)
 //     ply: 0                 // 0 for root, 1 for white's 1st move, 2 for
@@ -86,6 +89,7 @@
         promotion: moveInfo.promotion || null,
         color: moveInfo.color,
         eval: moveInfo.eval === undefined ? null : moveInfo.eval,
+        mateIn: moveInfo.mateIn === undefined ? null : moveInfo.mateIn,
         loss: moveInfo.loss === undefined ? null : moveInfo.loss
       }, moveInfo.fen, node.ply + 1);
 
