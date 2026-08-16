@@ -1,33 +1,77 @@
   <div class="layout-single">
     <main class="full-panel">
-        <div class="card">
+      <% if (typeof pageData !== 'undefined' && pageData.isLoggedIn && pageData.accounts && pageData.accounts.length) { %>
+        <% pageData.accounts.forEach(function(account) { %>
+          <div class="card">
             <div class="tabs">
-                <div class="tab active">Archives</div>
+              <div class="tab active">
+                <%= account.platformName %> - <%= account.accountname %>
+                (<%= account.owner ? 'Your account' : 'Following' %>)
+              </div>
             </div>
             <table class="table">
-                <thead>
+              <thead>
                 <tr>
-                    <th>Player</th>
-                    <th>Time</th>
-                    <th>Rated</th>
-                    <th>Color</th>
+                  <th>Total Games</th>
+                  <th>Wins</th>
+                  <th>Losses</th>
+                  <th>Draws</th>
+                  <th>Win Rate</th>
+                  <th>Avg Accuracy</th>
                 </tr>
-                </thead>
-                <tbody>
+              </thead>
+              <tbody>
                 <tr>
-                    <td>Anonymous</td>
-                    <td>1+2</td>
-                    <td>Casual</td>
-                    <td>Random</td>
+                  <td><%= account.totalGames %></td>
+                  <td><%= account.wins %></td>
+                  <td><%= account.losses %></td>
+                  <td><%= account.draws %></td>
+                  <td><%= account.winRate !== null ? account.winRate.toFixed(1) + '%' : 'N/A' %></td>
+                  <td><%= account.avgAccuracy !== null ? account.avgAccuracy.toFixed(1) + '%' : 'N/A' %></td>
                 </tr>
-                <tr>
-                    <td>Anonymous</td>
-                    <td>15+10</td>
-                    <td>Rated</td>
-                    <td>Random</td>
-                </tr>
-                </tbody>
+              </tbody>
             </table>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th colspan="3">Top 5 Openings</th>
+                </tr>
+                <tr>
+                  <th>Opening</th>
+                  <th>ECO</th>
+                  <th>Games</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (account.topOpenings && account.topOpenings.length) { %>
+                  <% account.topOpenings.forEach(function(opening) { %>
+                    <tr>
+                      <td><%= opening.name %></td>
+                      <td><%= opening.eco %></td>
+                      <td><%= opening.games %></td>
+                    </tr>
+                  <% }); %>
+                <% } else { %>
+                  <tr>
+                    <td colspan="3">No openings recorded yet</td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        <% }); %>
+      <% } else if (typeof pageData !== 'undefined' && pageData.isLoggedIn) { %>
+        <div class="card">
+          <div class="content">
+            <p>No chess accounts yet. Add one to start seeing your stats here.</p>
+          </div>
         </div>
+      <% } else { %>
+        <div class="card">
+          <div class="content">
+            <p>Welcome to Magnus. Log in to see stats for your chess accounts.</p>
+          </div>
+        </div>
+      <% } %>
     </main>
   </div>

@@ -153,6 +153,69 @@ async function setUserGameBookId(gameId, bookId) {
   );
 }
 
+// Per-account stats for everything userId owns/follows (one row per
+// user_accounts entry). Aggregates come from user_games joined the same
+// defensive account_id+platform_id way as the other queries here.
+//
+// `result` is written by scripts/downloadGames.js already relative to the
+// tracked account, as the literal strings 'win' | 'draw' | 'loss' (not
+// white/black-relative like '1-0'/'0-1'), so wins/losses/draws can be counted
+// directly without cross-checking `side`. Accuracy, however, IS stored
+// per-color (`white_accuracy`/`black_accuracy`), so that still needs `side`
+// to know which column belongs to the tracked account.
+async function getUserAccountsWithStats(userId) {
+  const [rows] = await pool.query(
+    `SELECT ua.account_id, ua.owner, a.accountname, p.name AS platform_name,
+            COUNT(ug.id) AS total_games,
+            SUM(CASE WHEN ug.result = 'win' THEN 1 ELSE 0 END) AS wins,
+            SUM(CASE WHEN ug.result = 'loss' THEN 1 ELSE 0 END) AS losses,
+            SUM(CASE WHEN ug.result = 'draw' THEN 1 ELSE 0 END) AS draws,
+            AVG(CASE WHEN ug.side = 0 THEN ug.black_accuracy ELSE ug.white_accuracy END) AS avg_accuracy
+     FROM user_accounts ua
+     JOIN accounts a ON a.id = ua.account_id
+     JOIN platforms p ON p.id = a.platform_id
+     LEFT JOIN user_games ug ON ug.account_id = a.id AND ug.platform_id = a.platform_id
+     WHERE ua.user_id = ?
+     GROUP BY ua.account_id, ua.owner, a.accountname, p.name
+     ORDER BY p.name ASC, a.accountname ASC;`,
+    [userId]
+  );
+  return rows;
+}
+
+// Top openings played across all given account ids, grouped by account. One
+// round trip for every account instead of looping a per-account query. The
+// sentinel "unrecognized opening" row (opening_book.eco = '?', see
+// getFallbackOpeningBookId) is excluded so the top-5 only shows real
+// openings; games with no book_id yet (not evaluated) are dropped the same
+// way by the INNER JOIN. Returns a map of account_id -> up to 5 rows,
+// ordered by games played desc.
+async function getTopOpeningsForAccounts(accountIds) {
+  if (!accountIds.length) {
+    return {};
+  }
+
+  const placeholders = accountIds.map(() => '?').join(', ');
+  const [rows] = await pool.query(
+    `SELECT ug.account_id, ob.id AS book_id, ob.eco, ob.name, COUNT(*) AS games
+     FROM user_games ug
+     JOIN opening_book ob ON ob.id = ug.book_id
+     WHERE ug.account_id IN (${placeholders}) AND ob.eco <> '?'
+     GROUP BY ug.account_id, ob.id, ob.eco, ob.name
+     ORDER BY ug.account_id ASC, games DESC;`,
+    accountIds
+  );
+
+  const openingsByAccount = {};
+  for (const row of rows) {
+    const list = openingsByAccount[row.account_id] || (openingsByAccount[row.account_id] = []);
+    if (list.length < 5) {
+      list.push(row);
+    }
+  }
+  return openingsByAccount;
+}
+
 module.exports = { pool,
                    testConnection,
                    getPlatforms,
@@ -166,6 +229,8 @@ module.exports = { pool,
                    getGameMoves,
                    getOpeningBookById,
                    getFallbackOpeningBookId,
-                   setUserGameBookId
+                   setUserGameBookId,
+                   getUserAccountsWithStats,
+                   getTopOpeningsForAccounts
                  };
 

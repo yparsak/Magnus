@@ -269,6 +269,13 @@ tbody td{
     overflow:hidden;
 }
 
+/* Spacing when a page (e.g. the per-account stats on the home page) stacks
+   more than one card in the same full-panel instead of a single full-height
+   one. */
+.full-panel .card + .card{
+    margin-top:16px;
+}
+
 .tabs{
     display:flex;
     background:#302e2b;
@@ -289,6 +296,10 @@ tbody td{
 .table{
     width:100%;
     border-collapse:collapse;
+}
+
+.table + .table{
+    border-top:1px solid #3b3b3b;
 }
 
 ::-webkit-scrollbar{
