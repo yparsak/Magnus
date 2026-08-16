@@ -216,6 +216,29 @@ async function getTopOpeningsForAccounts(accountIds) {
   return openingsByAccount;
 }
 
+// Site-wide top openings across every user_games row that has been matched
+// to an opening_book entry (book_id IS NOT NULL via the INNER JOIN), scoped
+// to accounts that are someone's own tracked account (user_accounts.owner =
+// 1) rather than just followed. DISTINCT guards against double-counting a
+// game if the same account is ever owned by more than one user_accounts row.
+// Mirrors getTopOpeningsForAccounts in excluding the sentinel "unrecognized
+// opening" row (opening_book.eco = '?', see getFallbackOpeningBookId) so the
+// list only shows real openings.
+async function getTopOpeningsOverall(limit) {
+  const [rows] = await pool.query(
+    `SELECT ob.id AS book_id, ob.eco, ob.name, COUNT(DISTINCT ug.id) AS games
+     FROM user_games ug
+     JOIN opening_book ob ON ob.id = ug.book_id
+     JOIN user_accounts ua ON ua.account_id = ug.account_id AND ua.owner = 1
+     WHERE ug.book_id IS NOT NULL AND ob.eco <> '?'
+     GROUP BY ob.id, ob.eco, ob.name
+     ORDER BY games DESC
+     LIMIT ?;`,
+    [limit]
+  );
+  return rows;
+}
+
 module.exports = { pool,
                    testConnection,
                    getPlatforms,
@@ -231,6 +254,7 @@ module.exports = { pool,
                    getFallbackOpeningBookId,
                    setUserGameBookId,
                    getUserAccountsWithStats,
-                   getTopOpeningsForAccounts
+                   getTopOpeningsForAccounts,
+                   getTopOpeningsOverall
                  };
 
