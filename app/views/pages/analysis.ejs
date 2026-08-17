@@ -20,7 +20,7 @@
           <div class="board-toolbar board-nav-toolbar">
             <% if (pageData.gameInfo) { %>
               <% if (pageData.prevGameId) { %>
-                <a href="/analysis?gameid=<%= pageData.prevGameId %>" class="nav-tool-btn" title="Previous game" aria-label="Previous game">&#171;</a>
+                <a href="/analysis?gameid=<%= pageData.prevGameId %><%= pageData.eco ? '&eco=' + encodeURIComponent(pageData.eco) : '' %>" class="nav-tool-btn" title="Previous game" aria-label="Previous game">&#171;</a>
               <% } else { %>
                 <span class="nav-tool-btn" aria-disabled="true" title="Previous game" aria-label="Previous game">&#171;</span>
               <% } %>
@@ -29,7 +29,7 @@
             <button type="button" id="nextMoveBtn" class="nav-tool-btn" title="Next move" aria-label="Next move">&#8250;</button>
             <% if (pageData.gameInfo) { %>
               <% if (pageData.nextGameId) { %>
-                <a href="/analysis?gameid=<%= pageData.nextGameId %>" class="nav-tool-btn" title="Next game" aria-label="Next game">&#187;</a>
+                <a href="/analysis?gameid=<%= pageData.nextGameId %><%= pageData.eco ? '&eco=' + encodeURIComponent(pageData.eco) : '' %>" class="nav-tool-btn" title="Next game" aria-label="Next game">&#187;</a>
               <% } else { %>
                 <span class="nav-tool-btn" aria-disabled="true" title="Next game" aria-label="Next game">&#187;</span>
               <% } %>

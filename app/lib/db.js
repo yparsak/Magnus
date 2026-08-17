@@ -88,6 +88,24 @@ async function getLatestUserGames(userId, limit, offset = 0) {
   return rows;
 }
 
+// Same as getLatestUserGames, scoped to games whose opening matches `eco`.
+// An eco code covers several opening_book ids (a trunk line plus deeper
+// named variations, see getOpeningBookByEco), so this joins opening_book on
+// book_id and filters by eco rather than comparing against a single id.
+async function getLatestUserGamesByEco(userId, eco, limit, offset = 0) {
+  const [rows] = await pool.query(
+    `SELECT ug.* FROM user_games ug
+     JOIN accounts a ON a.id = ug.account_id AND a.platform_id = ug.platform_id
+     JOIN user_accounts ua ON ua.account_id = a.id AND ua.user_id = ?
+     JOIN opening_book ob ON ob.id = ug.book_id
+     WHERE ob.eco = ?
+     ORDER BY ug.date DESC, ug.id DESC
+     LIMIT ? OFFSET ?;`,
+    [userId, eco, Number(limit), Number(offset)]
+  );
+  return rows;
+}
+
 // Returns the ids of the games immediately adjacent to (date, gameId) in
 // userId's game history, ordered the same way as getLatestUserGames (newest
 // first, same ownership join): prevGameId is the next-newer game (the row
@@ -95,24 +113,34 @@ async function getLatestUserGames(userId, limit, offset = 0) {
 // row just below), either null if this is the first/last game. Comparing the
 // (date, id) tuple rather than date alone keeps this deterministic even when
 // two games share a `date` (the column isn't unique).
-async function getAdjacentUserGameIds(userId, date, gameId) {
+//
+// When `eco` is given, both sub-queries also join opening_book on book_id
+// and filter by eco, so adjacency is computed within the eco-filtered list
+// (matching getLatestUserGamesByEco) instead of the full history -- an eco
+// covers several opening_book ids (see getLatestUserGamesByEco), so this
+// can't be done by comparing book_id directly.
+async function getAdjacentUserGameIds(userId, date, gameId, eco = null) {
+  const ecoJoin = eco ? 'JOIN opening_book ob ON ob.id = ug.book_id AND ob.eco = ?' : '';
+  const ecoParams = eco ? [eco] : [];
   const [prevRows] = await pool.query(
     `SELECT ug.id FROM user_games ug
      JOIN accounts a ON a.id = ug.account_id AND a.platform_id = ug.platform_id
      JOIN user_accounts ua ON ua.account_id = a.id AND ua.user_id = ?
+     ${ecoJoin}
      WHERE (ug.date, ug.id) > (?, ?)
      ORDER BY ug.date ASC, ug.id ASC
      LIMIT 1;`,
-    [userId, date, gameId]
+    [userId, ...ecoParams, date, gameId]
   );
   const [nextRows] = await pool.query(
     `SELECT ug.id FROM user_games ug
      JOIN accounts a ON a.id = ug.account_id AND a.platform_id = ug.platform_id
      JOIN user_accounts ua ON ua.account_id = a.id AND ua.user_id = ?
+     ${ecoJoin}
      WHERE (ug.date, ug.id) < (?, ?)
      ORDER BY ug.date DESC, ug.id DESC
      LIMIT 1;`,
-    [userId, date, gameId]
+    [userId, ...ecoParams, date, gameId]
   );
   return {
     prevGameId: prevRows.length ? prevRows[0].id : null,
@@ -261,6 +289,7 @@ module.exports = { pool,
                    insertUserAccount,
                    getUserGameForUser,
                    getLatestUserGames,
+                   getLatestUserGamesByEco,
                    getAdjacentUserGameIds,
                    getGameMoves,
                    getOpeningBookById,

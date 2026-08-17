@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getLatestUserGames } = require('../lib/db');
+const { getLatestUserGames, getLatestUserGamesByEco } = require('../lib/db');
 
 const { renderPage } = require('../lib/renderPage');
 
@@ -11,9 +11,16 @@ router.get('/', async (req, res) => {
     var rawPage = req.query.page;
     var page = /^[1-9]\d*$/.test(rawPage) ? Number.parseInt(rawPage, 10) : 1;
 
+    var rawEco = req.query.eco;
+    var eco = (typeof rawEco === 'string' && rawEco.trim()) ? rawEco.trim() : null;
+
     var isLoggedIn = Boolean(req.session && req.session.user);
     var offset = (page - 1) * PAGE_SIZE;
-    var rows = isLoggedIn ? await getLatestUserGames(req.session.user.id, PAGE_SIZE + 1, offset) : [];
+    var rows = isLoggedIn
+      ? (eco
+        ? await getLatestUserGamesByEco(req.session.user.id, eco, PAGE_SIZE + 1, offset)
+        : await getLatestUserGames(req.session.user.id, PAGE_SIZE + 1, offset))
+      : [];
 
     var hasNext = rows.length > PAGE_SIZE;
     var games = rows.slice(0, PAGE_SIZE);
@@ -23,7 +30,7 @@ router.get('/', async (req, res) => {
         mode: null,
         title: 'Magnus - Archive',
         showPromotionLayer: false,
-        pageData: { games: games, page: page, hasPrev: hasPrev, hasNext: hasNext }
+        pageData: { games: games, page: page, hasPrev: hasPrev, hasNext: hasNext, eco: eco }
       }
     );
   }

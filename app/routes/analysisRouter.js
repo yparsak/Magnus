@@ -56,12 +56,16 @@ async function loadGamePageData(req) {
     return null;
   }
 
+  var rawEco = req.query.eco;
+  var eco = (typeof rawEco === 'string' && rawEco.trim()) ? rawEco.trim() : null;
+
   var moveRows = await getGameMoves(userGame.id);
-  var adjacentGameIds = await getAdjacentUserGameIds(req.session.user.id, userGame.date, userGame.id);
+  var adjacentGameIds = await getAdjacentUserGameIds(req.session.user.id, userGame.date, userGame.id, eco);
   return {
     moves: moveRows.map(gameMoveToMoveInfo),
     prevGameId: adjacentGameIds.prevGameId,
     nextGameId: adjacentGameIds.nextGameId,
+    eco: eco,
     gameInfo: {
       white: userGame.white,
       whiteElo: userGame.white_elo,

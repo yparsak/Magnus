@@ -4,6 +4,9 @@
             <div class="tabs">
                 <div class="tab active">Archives</div>
             </div>
+            <% if (pageData.eco) { %>
+              <p>Filtered by opening ECO <strong><%= pageData.eco %></strong> &middot; <a href="/archive">Clear filter</a></p>
+            <% } %>
             <table class="table">
                 <thead>
                 <tr>
@@ -20,7 +23,7 @@
                 <% if (typeof pageData !== 'undefined' && pageData.games && pageData.games.length) { %>
                   <% pageData.games.forEach(function(game) { %>
                   <tr>
-                      <td><a href="/analysis?gameid=<%= game.id %>"><%= game.id %></a></td>
+                      <td><a href="/analysis?gameid=<%= game.id %><%= pageData.eco ? '&eco=' + encodeURIComponent(pageData.eco) : '' %>"><%= game.id %></a></td>
                       <td><%= game.white %></td>
                       <td><%= game.black %></td>
                       <td><%= game.time_control %></td>
@@ -38,10 +41,10 @@
             </table>
             <div class="pagination">
                 <% if (pageData.hasPrev) { %>
-                  <a href="/archive?page=<%= pageData.page - 1 %>">Previous</a>
+                  <a href="/archive?page=<%= pageData.page - 1 %><%= pageData.eco ? '&eco=' + encodeURIComponent(pageData.eco) : '' %>">Previous</a>
                 <% } %>
                 <% if (pageData.hasNext) { %>
-                  <a href="/archive?page=<%= pageData.page + 1 %>">Next</a>
+                  <a href="/archive?page=<%= pageData.page + 1 %><%= pageData.eco ? '&eco=' + encodeURIComponent(pageData.eco) : '' %>">Next</a>
                 <% } %>
             </div>
         </div>
