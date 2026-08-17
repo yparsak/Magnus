@@ -224,13 +224,25 @@ async function getUserAccountsWithStats(userId) {
   return rows;
 }
 
-// Top openings played across all given account ids, grouped by account. One
-// round trip for every account instead of looping a per-account query. The
-// sentinel "unrecognized opening" row (opening_book.eco = '?', see
-// getFallbackOpeningBookId) is excluded so the top-5 only shows real
-// openings; games with no book_id yet (not evaluated) are dropped the same
-// way by the INNER JOIN. Returns a map of account_id -> up to 5 rows,
-// ordered by games played desc.
+// Top openings played across all given account ids, grouped by account and
+// eco. An eco code covers several opening_book ids (a trunk line plus deeper
+// named variations, see getOpeningBookByEco/getLatestUserGamesByEco), so
+// grouping by ob.id alone would fragment one opening's games across several
+// rows and undercount it -- grouping by eco collapses those variations back
+// into a single row per opening, matching how getLatestUserGamesByEco treats
+// "same eco" as "same opening". Since a single eco can have several
+// variation names, the displayed name is picked deterministically via the
+// name belonging to the shortest-pgn (trunk) row for that eco, mirroring
+// getOpeningBookByEco's "shortest pgn wins" convention. GROUP_CONCAT/
+// SUBSTRING_INDEX use the ASCII unit-separator control character (\x1F)
+// instead of the default comma, because opening_book.name values routinely
+// contain literal commas (e.g. "Amar Opening: Paris Gambit, Gent Gambit"),
+// which would otherwise corrupt the split; \x1F is not expected to appear
+// in a stored opening name. The sentinel "unrecognized opening" row
+// (opening_book.eco = '?', see getFallbackOpeningBookId) is excluded so the
+// top-5 only shows real openings; games with no book_id yet (not evaluated)
+// are dropped the same way by the INNER JOIN. Returns a map of
+// account_id -> up to 5 rows, ordered by games played desc.
 async function getTopOpeningsForAccounts(accountIds) {
   if (!accountIds.length) {
     return {};
@@ -238,11 +250,13 @@ async function getTopOpeningsForAccounts(accountIds) {
 
   const placeholders = accountIds.map(() => '?').join(', ');
   const [rows] = await pool.query(
-    `SELECT ug.account_id, ob.id AS book_id, ob.eco, ob.name, COUNT(*) AS games
+    `SELECT ug.account_id, ob.eco,
+            SUBSTRING_INDEX(GROUP_CONCAT(ob.name ORDER BY CHAR_LENGTH(ob.pgn) ASC SEPARATOR '\x1F'), '\x1F', 1) AS name,
+            COUNT(*) AS games
      FROM user_games ug
      JOIN opening_book ob ON ob.id = ug.book_id
      WHERE ug.account_id IN (${placeholders}) AND ob.eco <> '?'
-     GROUP BY ug.account_id, ob.id, ob.eco, ob.name
+     GROUP BY ug.account_id, ob.eco
      ORDER BY ug.account_id ASC, games DESC;`,
     accountIds
   );
@@ -262,17 +276,26 @@ async function getTopOpeningsForAccounts(accountIds) {
 // to accounts that are someone's own tracked account (user_accounts.owner =
 // 1) rather than just followed. DISTINCT guards against double-counting a
 // game if the same account is ever owned by more than one user_accounts row.
-// Mirrors getTopOpeningsForAccounts in excluding the sentinel "unrecognized
-// opening" row (opening_book.eco = '?', see getFallbackOpeningBookId) so the
-// list only shows real openings.
+// Grouped by eco rather than book_id: an eco code covers several
+// opening_book ids (a trunk line plus deeper named variations, see
+// getOpeningBookByEco/getLatestUserGamesByEco), so grouping by ob.id alone
+// would fragment one opening's games across several rows and undercount it.
+// The displayed name is picked deterministically via the name belonging to
+// the shortest-pgn (trunk) row for that eco -- see getTopOpeningsForAccounts
+// for why GROUP_CONCAT/SUBSTRING_INDEX use \x1F as the separator instead of
+// the default comma. Mirrors getTopOpeningsForAccounts in excluding the
+// sentinel "unrecognized opening" row (opening_book.eco = '?', see
+// getFallbackOpeningBookId) so the list only shows real openings.
 async function getTopOpeningsOverall(limit) {
   const [rows] = await pool.query(
-    `SELECT ob.id AS book_id, ob.eco, ob.name, COUNT(DISTINCT ug.id) AS games
+    `SELECT ob.eco,
+            SUBSTRING_INDEX(GROUP_CONCAT(ob.name ORDER BY CHAR_LENGTH(ob.pgn) ASC SEPARATOR '\x1F'), '\x1F', 1) AS name,
+            COUNT(DISTINCT ug.id) AS games
      FROM user_games ug
      JOIN opening_book ob ON ob.id = ug.book_id
      JOIN user_accounts ua ON ua.account_id = ug.account_id AND ua.owner = 1
      WHERE ug.book_id IS NOT NULL AND ob.eco <> '?'
-     GROUP BY ob.id, ob.eco, ob.name
+     GROUP BY ob.eco
      ORDER BY games DESC
      LIMIT ?;`,
     [limit]
