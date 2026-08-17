@@ -98,8 +98,8 @@
               <% if (typeof pageData !== 'undefined' && pageData.topOpeningsOverall && pageData.topOpeningsOverall.length) { %>
                 <% pageData.topOpeningsOverall.forEach(function(opening) { %>
                   <tr>
-                    <td><%= opening.name %></td>
-                    <td><%= opening.eco %></td>
+                    <td><a href="/analysis?eco=<%= opening.eco %>"><%= opening.name %></a></td>
+                    <td><a href="/analysis?eco=<%= opening.eco %>"><%= opening.eco %></a></td>
                     <td><%= opening.games %></td>
                   </tr>
                 <% }); %>

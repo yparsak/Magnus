@@ -136,6 +136,19 @@ async function getOpeningBookById(id) {
   return rows.length ? rows[0] : null;
 }
 
+// Looks up an opening_book row by ECO code for the analysis page's ?eco=
+// link (see index.ejs's Opening Books tab). An ECO code can map to several
+// rows at different depths (a trunk line plus deeper named variations
+// sharing the same code) -- ordering by pgn length picks the shortest,
+// i.e. the trunk/canonical line, for a deterministic result.
+async function getOpeningBookByEco(eco) {
+  const [rows] = await pool.query(
+    'SELECT id, eco, name, pgn FROM opening_book WHERE eco = ? ORDER BY CHAR_LENGTH(pgn) ASC, id ASC LIMIT 1;',
+    [eco]
+  );
+  return rows.length ? rows[0] : null;
+}
+
 // Mirrors scripts/evaluateGames.js's own lookup for the sentinel "no known
 // opening" row, so this file and that batch job agree on which row means
 // "unrecognized" when stamping user_games.book_id.
@@ -251,6 +264,7 @@ module.exports = { pool,
                    getAdjacentUserGameIds,
                    getGameMoves,
                    getOpeningBookById,
+                   getOpeningBookByEco,
                    getFallbackOpeningBookId,
                    setUserGameBookId,
                    getUserAccountsWithStats,

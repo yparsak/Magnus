@@ -1,5 +1,8 @@
 'use strict';
 
+const { Chess } = require('../public/js/chess.min.js');
+const { ValidationError } = require('./chess');
+
 /**
  * openingBook.js
  * Opening-book lookup shared by the analysis page (live detection while
@@ -63,4 +66,35 @@ async function findOpeningMatch(pool, sanMoves, maxFullMoves = 10) {
   return { id: best.id, eco: best.eco, name: best.name };
 }
 
-module.exports = { buildOpeningPgn, findOpeningMatch };
+// Inverse of buildOpeningPgn: takes a pgn string in that same format
+// ("1. e4 e5 2. Nf3") and replays it on a fresh Chess instance, returning an
+// array of moveInfo objects shaped like gameMoveToMoveInfo in chess.js
+// ({ san, from, to, promotion, color, fen }) so it can be fed straight into
+// the frontend move tree (move-tree.js's addMove defaults eval/mateIn/loss
+// to null when absent). Move-number tokens ("1.", "2.", ...) are stripped
+// before replay. Throws ValidationError if a token isn't a legal move --
+// shouldn't happen for real opening_book data, but keeps behavior consistent
+// with chess.js's resolvePosition.
+function parseOpeningPgn(pgn) {
+  var tokens = pgn.trim().split(/\s+/).filter(function (token) {
+    return token.length > 0 && !/^\d+\.+$/.test(token);
+  });
+
+  var chess = new Chess();
+  return tokens.map(function (token) {
+    var move = chess.move(token, { sloppy: true });
+    if (!move) {
+      throw new ValidationError(`Illegal move in opening_book pgn: "${token}"`);
+    }
+    return {
+      san: move.san,
+      from: move.from,
+      to: move.to,
+      promotion: move.promotion || null,
+      color: move.color,
+      fen: chess.fen()
+    };
+  });
+}
+
+module.exports = { buildOpeningPgn, findOpeningMatch, parseOpeningPgn };

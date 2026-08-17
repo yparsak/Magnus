@@ -6,13 +6,14 @@ const {
   getAdjacentUserGameIds,
   getGameMoves,
   getOpeningBookById,
+  getOpeningBookByEco,
   getFallbackOpeningBookId,
   setUserGameBookId
 } = require('../lib/db');
 
 const { renderPage } = require('../lib/renderPage');
 const { isValidFen, gameMoveToMoveInfo } = require('../lib/chess');
-const { findOpeningMatch } = require('../lib/openingBook');
+const { findOpeningMatch, parseOpeningPgn } = require('../lib/openingBook');
 
 // Resolves the opening for a stored game, persisting book_id the first time
 // (mirrors scripts/evaluateGames.js's own convention of stamping the '?'
@@ -79,11 +80,34 @@ async function loadGamePageData(req) {
   };
 }
 
+// Builds { moves, opening } for an ?eco= request (the Opening Books tab on
+// index.ejs), or null if the code is missing/blank or doesn't match a known
+// opening_book row. Unlike loadGamePageData there's no gameInfo/prevGameId/
+// nextGameId -- the frontend and template already treat those as optional.
+async function loadOpeningBookPageData(req) {
+  var rawEco = req.query.eco;
+  if (typeof rawEco !== 'string' || !rawEco.trim()) {
+    return null;
+  }
+
+  var openingBook = await getOpeningBookByEco(rawEco.trim());
+  if (!openingBook) {
+    return null;
+  }
+
+  return {
+    moves: parseOpeningPgn(openingBook.pgn),
+    opening: { eco: openingBook.eco, name: openingBook.name }
+  };
+}
+
 router.get('/', async (req, res) => {
   try {
     var fen = req.query.fen;
     var gamePageData = await loadGamePageData(req);
-    var pageData = gamePageData || ((typeof fen === 'string' && isValidFen(fen)) ? { fen: fen } : {});
+    var openingBookPageData = gamePageData ? null : await loadOpeningBookPageData(req);
+    var pageData = gamePageData || openingBookPageData ||
+      ((typeof fen === 'string' && isValidFen(fen)) ? { fen: fen } : {});
 
     renderPage (res,'main_template', 'analysis', {
         mode: 'editor',
