@@ -246,9 +246,9 @@ $(function () {
     $(window).on('beforeunload', stopAutoplay);
   }
 
-  // Toggles autoplay on/off -- the button's current label ([>] vs [||]) always
-  // mirrors whether autoplayTimer is set, so that's the single source of
-  // truth for which state we're in.
+  // Toggles autoplay on/off -- the button's current label (play vs pause icon)
+  // always mirrors whether autoplayTimer is set, so that's the single source
+  // of truth for which state we're in.
   function togglePlayPause() {
     if (autoplayTimer) {
       stopAutoplay();
@@ -297,7 +297,7 @@ $(function () {
   }
 
   function setPlayPauseLabel(isPlaying) {
-    $('#playPauseBtn').text(isPlaying ? '[||]' : '[>]');
+    $('#playPauseBtn').html(isPlaying ? '&#9208;' : '&#9654;');
   }
 
   // Enables/disables the Previous/Next toolbar buttons to match whether the
