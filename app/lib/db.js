@@ -271,34 +271,35 @@ async function getTopOpeningsForAccounts(accountIds) {
   return openingsByAccount;
 }
 
-// Site-wide top openings across every user_games row that has been matched
-// to an opening_book entry (book_id IS NOT NULL via the INNER JOIN), scoped
-// to accounts that are someone's own tracked account (user_accounts.owner =
-// 1) rather than just followed. DISTINCT guards against double-counting a
-// game if the same account is ever owned by more than one user_accounts row.
-// Grouped by eco rather than book_id: an eco code covers several
-// opening_book ids (a trunk line plus deeper named variations, see
-// getOpeningBookByEco/getLatestUserGamesByEco), so grouping by ob.id alone
-// would fragment one opening's games across several rows and undercount it.
-// The displayed name is picked deterministically via the name belonging to
-// the shortest-pgn (trunk) row for that eco -- see getTopOpeningsForAccounts
-// for why GROUP_CONCAT/SUBSTRING_INDEX use \x1F as the separator instead of
-// the default comma. Mirrors getTopOpeningsForAccounts in excluding the
-// sentinel "unrecognized opening" row (opening_book.eco = '?', see
-// getFallbackOpeningBookId) so the list only shows real openings.
-async function getTopOpeningsOverall(limit) {
+// Top openings across every user_games row that has been matched to an
+// opening_book entry (book_id IS NOT NULL via the INNER JOIN), scoped to the
+// given user's tracked accounts (user_accounts.user_id = ?, both owned and
+// followed -- same scope getUserAccountsWithStats uses). DISTINCT guards
+// against double-counting a game if the same account is ever tracked by more
+// than one user_accounts row for this user. Grouped by eco rather than
+// book_id: an eco code covers several opening_book ids (a trunk line plus
+// deeper named variations, see getOpeningBookByEco/getLatestUserGamesByEco),
+// so grouping by ob.id alone would fragment one opening's games across
+// several rows and undercount it. The displayed name is picked
+// deterministically via the name belonging to the shortest-pgn (trunk) row
+// for that eco -- see getTopOpeningsForAccounts for why GROUP_CONCAT/
+// SUBSTRING_INDEX use \x1F as the separator instead of the default comma.
+// Mirrors getTopOpeningsForAccounts in excluding the sentinel "unrecognized
+// opening" row (opening_book.eco = '?', see getFallbackOpeningBookId) so the
+// list only shows real openings.
+async function getTopOpeningsForUser(userId, limit) {
   const [rows] = await pool.query(
     `SELECT ob.eco,
             SUBSTRING_INDEX(GROUP_CONCAT(ob.name ORDER BY CHAR_LENGTH(ob.pgn) ASC SEPARATOR '\x1F'), '\x1F', 1) AS name,
             COUNT(DISTINCT ug.id) AS games
      FROM user_games ug
      JOIN opening_book ob ON ob.id = ug.book_id
-     JOIN user_accounts ua ON ua.account_id = ug.account_id AND ua.owner = 1
+     JOIN user_accounts ua ON ua.account_id = ug.account_id AND ua.user_id = ?
      WHERE ug.book_id IS NOT NULL AND ob.eco <> '?'
      GROUP BY ob.eco
      ORDER BY games DESC
      LIMIT ?;`,
-    [limit]
+    [userId, limit]
   );
   return rows;
 }
@@ -321,6 +322,6 @@ module.exports = { pool,
                    setUserGameBookId,
                    getUserAccountsWithStats,
                    getTopOpeningsForAccounts,
-                   getTopOpeningsOverall
+                   getTopOpeningsForUser
                  };
 

@@ -82,35 +82,43 @@
       </div>
 
       <div id="tab-panel-opening-books" class="tab-panel hidden">
-        <div class="card">
-          <table class="table">
-            <thead>
-              <tr>
-                <th colspan="3">Top Openings Site-Wide</th>
-              </tr>
-              <tr>
-                <th>Opening</th>
-                <th>ECO</th>
-                <th>Games</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% if (typeof pageData !== 'undefined' && pageData.topOpeningsOverall && pageData.topOpeningsOverall.length) { %>
-                <% pageData.topOpeningsOverall.forEach(function(opening) { %>
-                  <tr>
-                    <td><a href="/archive?eco=<%= encodeURIComponent(opening.eco) %>"><%= opening.name %></a></td>
-                    <td><a href="/archive?eco=<%= encodeURIComponent(opening.eco) %>"><%= opening.eco %></a></td>
-                    <td><%= opening.games %></td>
-                  </tr>
-                <% }); %>
-              <% } else { %>
+        <% if (typeof pageData !== 'undefined' && pageData.isLoggedIn) { %>
+          <div class="card">
+            <table class="table">
+              <thead>
                 <tr>
-                  <td colspan="3">No openings recorded yet</td>
+                  <th colspan="3">Your Top Openings</th>
                 </tr>
-              <% } %>
-            </tbody>
-          </table>
-        </div>
+                <tr>
+                  <th>Opening</th>
+                  <th>ECO</th>
+                  <th>Games</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (pageData.topOpeningsForUser && pageData.topOpeningsForUser.length) { %>
+                  <% pageData.topOpeningsForUser.forEach(function(opening) { %>
+                    <tr>
+                      <td><a href="/archive?eco=<%= encodeURIComponent(opening.eco) %>"><%= opening.name %></a></td>
+                      <td><a href="/archive?eco=<%= encodeURIComponent(opening.eco) %>"><%= opening.eco %></a></td>
+                      <td><%= opening.games %></td>
+                    </tr>
+                  <% }); %>
+                <% } else { %>
+                  <tr>
+                    <td colspan="3">No openings recorded yet</td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <div class="card">
+            <div class="content">
+              <p>Welcome to Magnus. Log in to see stats for your chess accounts.</p>
+            </div>
+          </div>
+        <% } %>
       </div>
     </main>
   </div>

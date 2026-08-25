@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { getUserAccountsWithStats, getTopOpeningsForAccounts, getTopOpeningsOverall } = require('../lib/db');
+const { getUserAccountsWithStats, getTopOpeningsForAccounts, getTopOpeningsForUser } = require('../lib/db');
 
-const TOP_OPENINGS_OVERALL_LIMIT = 10;
+const TOP_OPENINGS_LIMIT = 10;
 
 const { renderPage } = require('../lib/renderPage');
 
@@ -10,6 +10,7 @@ router.get('/', async (req, res) => {
   try {
     const isLoggedIn = Boolean(req.session && req.session.user);
     let accounts = [];
+    let topOpeningsForUser = [];
 
     if (isLoggedIn) {
       const accountRows = await getUserAccountsWithStats(req.session.user.id);
@@ -34,15 +35,15 @@ router.get('/', async (req, res) => {
           topOpenings: openingsByAccount[row.account_id] || []
         };
       });
-    }
 
-    const topOpeningsOverall = await getTopOpeningsOverall(TOP_OPENINGS_OVERALL_LIMIT);
+      topOpeningsForUser = await getTopOpeningsForUser(req.session.user.id, TOP_OPENINGS_LIMIT);
+    }
 
     renderPage(res, 'main_template', 'index', {
         mode: null,
         title: 'Magnus',
         showPromotionLayer: false,
-        pageData: { isLoggedIn: isLoggedIn, accounts: accounts, topOpeningsOverall: topOpeningsOverall }
+        pageData: { isLoggedIn: isLoggedIn, accounts: accounts, topOpeningsForUser: topOpeningsForUser }
       }
     );
   }

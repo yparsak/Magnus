@@ -45,6 +45,13 @@ $(function () {
   // instead of stacking multiple reverts.
   var copyFenFeedbackTimer = null;
 
+  // Timer driving autoplay's step-forward loop (see startAutoplay/
+  // autoplayStep) -- non-null exactly while autoplay is running, so it also
+  // doubles as the "is autoplay active" flag and lets pause/cleanup just
+  // clearTimeout it unconditionally.
+  var autoplayTimer = null;
+  var AUTOPLAY_STEP_DELAY_MS = 3000;
+
   initAnalysis();
   bindControls();
 
@@ -221,11 +228,76 @@ $(function () {
 
     $('#copyFenBtn').on('click', copyFenToClipboard);
 
+    // Only present when a stored game was loaded via ?gameid= (see
+    // analysis.ejs) -- a fresh analysis board has no fixed move list to
+    // autoplay through, so the button simply isn't rendered there.
+    $('#playPauseBtn').on('click', togglePlayPause);
+
     bindBoardTapToMove();
 
     $(window).on('resize', function () {
       if (analysisBoard) analysisBoard.resize();
     });
+
+    // Belt-and-suspenders: a same-tab navigation (prev/next game link, or
+    // just closing/leaving the tab) already tears down this whole JS
+    // context, but explicitly clearing the timer here means autoplay never
+    // outlives the page it was scheduled from.
+    $(window).on('beforeunload', stopAutoplay);
+  }
+
+  // Toggles autoplay on/off -- the button's current label ([>] vs [||]) always
+  // mirrors whether autoplayTimer is set, so that's the single source of
+  // truth for which state we're in.
+  function togglePlayPause() {
+    if (autoplayTimer) {
+      stopAutoplay();
+    } else {
+      startAutoplay();
+    }
+  }
+
+  function startAutoplay() {
+    setPlayPauseLabel(true);
+    scheduleAutoplayStep();
+  }
+
+  // Clears the pending timer (if any) and reverts the button to Play, but
+  // leaves the board exactly where it is -- a manual pause should not jump
+  // back to the start (that only happens when autoplay runs off the end of
+  // the game, see autoplayStep).
+  function stopAutoplay() {
+    clearTimeout(autoplayTimer);
+    autoplayTimer = null;
+    setPlayPauseLabel(false);
+  }
+
+  function scheduleAutoplayStep() {
+    autoplayTimer = setTimeout(autoplayStep, AUTOPLAY_STEP_DELAY_MS);
+  }
+
+  // One tick of autoplay. Reuses stepView (the exact same next-move path the
+  // toolbar's Next button and the right-arrow key already use) so a played
+  // move renders identically either way -- this just keeps calling it on a
+  // timer. Once the line runs out of children, the game is over: reset back
+  // to the start (same as loading a fresh game would look) and flip the
+  // button back to Play rather than scheduling another tick.
+  function autoplayStep() {
+    if (tree.getCurrent().children.length === 0) {
+      tree.goToStart();
+      renderViewPosition();
+      renderMoveList();
+      autoplayTimer = null;
+      setPlayPauseLabel(false);
+      return;
+    }
+
+    stepView(1);
+    scheduleAutoplayStep();
+  }
+
+  function setPlayPauseLabel(isPlaying) {
+    $('#playPauseBtn').text(isPlaying ? '[||]' : '[>]');
   }
 
   // Enables/disables the Previous/Next toolbar buttons to match whether the
