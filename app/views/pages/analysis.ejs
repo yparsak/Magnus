@@ -11,7 +11,13 @@
             <span id="engineEvalScore" class="engine-eval-score">--</span>
             <span id="engineEvalStatus" class="engine-eval-status"></span>
           </div>
-          <h3 class="editor-group-title">Best Moves</h3>
+          <div class="engine-moves-header">
+            <h3 class="editor-group-title">Best Moves</h3>
+            <label class="toggle-switch" title="Toggle best-move suggestions">
+              <input type="checkbox" id="bestMovesToggle">
+              <span class="toggle-switch-slider"></span>
+            </label>
+          </div>
           <ol id="engineMoveList" class="engine-move-list"></ol>
         </div>
       </aside>

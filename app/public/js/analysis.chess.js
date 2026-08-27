@@ -52,6 +52,14 @@ $(function () {
   var autoplayTimer = null;
   var AUTOPLAY_STEP_DELAY_MS = 3000;
 
+  // Single shared Audio instance for the move sound (see completeMove) --
+  // reused across every move rather than a fresh Audio() per move so rapid
+  // moves don't leak audio elements; calling .play() again just restarts it.
+  var moveSound = new Audio('/effects/move.mp3');
+
+  var BEST_MOVES_STORAGE_KEY = 'analysisBestMovesEnabled';
+  var bestMovesEnabled = loadBestMovesEnabled();
+
   initAnalysis();
   bindControls();
 
@@ -234,6 +242,7 @@ $(function () {
     $('#playPauseBtn').on('click', togglePlayPause);
 
     bindBoardTapToMove();
+    bindBestMovesToggle();
 
     $(window).on('resize', function () {
       if (analysisBoard) analysisBoard.resize();
@@ -468,10 +477,21 @@ $(function () {
     });
   }
 
+  // Restarts the shared move-sound instance from the top rather than just
+  // calling .play() on a possibly-still-playing instance, so moves made in
+  // quick succession (e.g. autoplay, engine-move clicks) each audibly retrigger
+  // it instead of the sound only playing once and then being a no-op.
+  function playMoveSound() {
+    moveSound.currentTime = 0;
+    moveSound.play().catch(function () {});
+  }
+
   // Shared tail end of a completed move, regardless of whether it was played
   // straight from onAnalysisDrop or resolved asynchronously via the
   // promotion picker.
   function completeMove(moveObj) {
+    playMoveSound();
+
     tree.addMove(tree.getCurrent(), {
       san: moveObj.san,
       from: moveObj.from,
@@ -567,19 +587,51 @@ $(function () {
     renderMoveList();
   }
 
+  // Reads the "Best Moves" toggle's persisted state (see bindBestMovesToggle)
+  // -- unset (first visit) defaults to enabled, matching today's behavior.
+  function loadBestMovesEnabled() {
+    var stored = localStorage.getItem(BEST_MOVES_STORAGE_KEY);
+    return stored === null ? true : stored === 'true';
+  }
+
+  // Mirrors the toggle's checked state into bestMovesEnabled and localStorage.
+  // Flipping it on re-fetches immediately (via refreshEnginePanel) so the
+  // list populates right away rather than waiting for the next move/nav;
+  // flipping it off just blanks the list -- refreshEnginePanel's own gating
+  // means no request needs canceling.
+  function bindBestMovesToggle() {
+    var $toggle = $('#bestMovesToggle').prop('checked', bestMovesEnabled);
+
+    $toggle.on('change', function () {
+      bestMovesEnabled = this.checked;
+      localStorage.setItem(BEST_MOVES_STORAGE_KEY, bestMovesEnabled);
+      if (bestMovesEnabled) {
+        refreshEnginePanel();
+      } else {
+        $('#engineMoveList').empty();
+      }
+    });
+  }
+
   // Fetches eval + top-10 best moves for whatever `game` currently holds and
   // renders them into the left panel. Called on load and from every
   // position-changing path (renderViewPosition, completeMove) so the panel
   // always reflects the position on screen, not just the position at load.
+  // The best-moves half is skipped entirely (not just discarded on arrival)
+  // while the "Best Moves" toggle is off -- see bindBestMovesToggle.
   function refreshEnginePanel() {
     var requestId = ++engineRequestSeq;
     var fen = game.fen();
 
     $('#enginePanel').addClass('engine-panel-loading');
 
+    var bestMovesPromise = bestMovesEnabled ?
+      window.ApiClient.getEngineBestMoves({ fen: fen }) :
+      Promise.resolve({ moves: [] });
+
     Promise.all([
       window.ApiClient.getEngineEval({ fen: fen }),
-      window.ApiClient.getEngineBestMoves({ fen: fen })
+      bestMovesPromise
     ]).then(function (results) {
       if (requestId !== engineRequestSeq) {
         return; // a newer request has since been fired -- drop this stale one
