@@ -33,6 +33,7 @@
             <% } %>
             <button type="button" id="prevMoveBtn" class="nav-tool-btn" title="Previous move" aria-label="Previous move">&#8249;</button>
             <button type="button" id="nextMoveBtn" class="nav-tool-btn" title="Next move" aria-label="Next move">&#8250;</button>
+            <button type="button" id="soundToggleBtn" class="nav-tool-btn" title="Toggle move announcements" aria-label="Toggle move announcements">&#128266;</button>
             <% if (pageData.gameInfo) { %>
               <button type="button" id="playPauseBtn" class="nav-tool-btn" title="Play/pause autoplay" aria-label="Play/pause autoplay">&#9654;</button>
               <% if (pageData.nextGameId) { %>
@@ -72,4 +73,5 @@
   <script src="/js/move-tree-view.js"></script>
   <script src="/js/choice-modal.js"></script>
   <script src="/js/api-client.js"></script>
+  <script src="/js/move2Speech.js"></script>
   <script src="/js/analysis.chess.js"></script>

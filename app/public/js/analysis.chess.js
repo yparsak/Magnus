@@ -243,6 +243,7 @@ $(function () {
 
     bindBoardTapToMove();
     bindBestMovesToggle();
+    bindSoundToggle();
 
     $(window).on('resize', function () {
       if (analysisBoard) analysisBoard.resize();
@@ -491,6 +492,9 @@ $(function () {
   // promotion picker.
   function completeMove(moveObj) {
     playMoveSound();
+    if (window.speak) {
+      window.speak(moveObj.san);
+    }
 
     tree.addMove(tree.getCurrent(), {
       san: moveObj.san,
@@ -521,6 +525,10 @@ $(function () {
     game.load(node.fen);
     analysisBoard.position(node.fen, false);
     $('#fenInput').val(node.fen);
+    // Root node has no move (it's the starting position) -- nothing to announce.
+    if (window.speak && node.move) {
+      window.speak(node.move.san);
+    }
     refreshEnginePanel();
     refreshOpeningBook();
 
@@ -611,6 +619,18 @@ $(function () {
         $('#engineMoveList').empty();
       }
     });
+  }
+
+  // Wires the toolbar's speaker button to move2Speech.js's own toggle/state
+  // functions -- soundToggleBtn's icon is kept in sync by updateSoundButton
+  // itself (called here for the initial render, and again from toggleSound
+  // on every click), so this file never touches soundEnabled directly.
+  function bindSoundToggle() {
+    if (!window.toggleSound) {
+      return;
+    }
+    window.updateSoundButton();
+    $('#soundToggleBtn').on('click', window.toggleSound);
   }
 
   // Fetches eval + top-10 best moves for whatever `game` currently holds and
