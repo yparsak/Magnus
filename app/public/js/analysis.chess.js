@@ -48,9 +48,27 @@ $(function () {
   // Timer driving autoplay's step-forward loop (see startAutoplay/
   // autoplayStep) -- non-null exactly while autoplay is running, so it also
   // doubles as the "is autoplay active" flag and lets pause/cleanup just
-  // clearTimeout it unconditionally.
+  // clearTimeout it unconditionally. While a blunder demo is being built
+  // (see startBlunderDemo) there's no real timer to hold yet, so this is set
+  // to a harmless placeholder instead of a setTimeout id -- it just needs to
+  // stay truthy so togglePlayPause still reads autoplay as "running".
   var autoplayTimer = null;
   var AUTOPLAY_STEP_DELAY_MS = 3000;
+
+  // Bumped every time autoplay is stopped -- startBlunderDemo captures this
+  // before its ~5 sequential engine round-trips begin, and checks it again
+  // once they resolve, so a pause clicked mid-build (the only way this can
+  // race) is detected and the stale variation is discarded instead of
+  // navigating a board the user no longer expects to be autoplaying.
+  var autoplayGeneration = 0;
+
+  // Non-null exactly while autoplay is walking a blunder-demo variation (see
+  // autoplayStep/startBlunderDemo/stepBlunderDemo): the ordered demo nodes,
+  // the index of the one currently on screen, and the real-game node to
+  // return to once the demo finishes. Cleared in stopAutoplay so a manual
+  // pause mid-demo never leaves stale state for the next Play click to trip
+  // over.
+  var blunderDemo = null;
 
   // Single shared Audio instance for the move sound (see completeMove) --
   // reused across every move rather than a fresh Audio() per move so rapid
@@ -284,6 +302,8 @@ $(function () {
   function stopAutoplay() {
     clearTimeout(autoplayTimer);
     autoplayTimer = null;
+    autoplayGeneration++;
+    blunderDemo = null;
     setPlayPauseLabel(false);
   }
 
@@ -297,7 +317,19 @@ $(function () {
   // timer. Once the line runs out of children, the game is over: reset back
   // to the start (same as loading a fresh game would look) and flip the
   // button back to Play rather than scheduling another tick.
+  //
+  // Before stepping into a move that was an actual blunder (game_moves.loss
+  // === 3), detour into a short engine-best-line demo first (see
+  // startBlunderDemo) rather than just playing the blunder straight through
+  // -- nextNode.blunderShown guarantees that detour fires only once per
+  // blunder, so pausing/rewinding/replaying over the same spot doesn't
+  // rebuild the variation again.
   function autoplayStep() {
+    if (blunderDemo) {
+      stepBlunderDemo();
+      return;
+    }
+
     if (tree.getCurrent().children.length === 0) {
       tree.goToStart();
       renderViewPosition();
@@ -307,7 +339,129 @@ $(function () {
       return;
     }
 
+    var node = tree.getCurrent();
+    var nextNode = node.children[0];
+    if (nextNode.move && nextNode.move.loss === 3 && !nextNode.blunderShown) {
+      nextNode.blunderShown = true;
+      startBlunderDemo(node);
+      return;
+    }
+
     stepView(1);
+    scheduleAutoplayStep();
+  }
+
+  // Kicks off the async build of a best-line demo variation branching off
+  // branchNode (the position just before a blunder that's about to be
+  // autoplayed) -- see buildBlunderVariation. Takes over scheduling until
+  // the demo is ready to walk: no stepView/scheduleAutoplayStep call happens
+  // here, since the ~5 sequential engine round-trips this waits on already
+  // fill that role. autoplayTimer is set to a placeholder for the duration
+  // so a pause click mid-build is still recognized as "stop the running
+  // autoplay" rather than mistaken for "nothing is running, so start it".
+  function startBlunderDemo(branchNode) {
+    var generation = autoplayGeneration;
+    autoplayTimer = -1;
+
+    buildBlunderVariation(branchNode).then(function (variationNodes) {
+      if (generation !== autoplayGeneration) {
+        return; // stopAutoplay ran while the engine calls were in flight
+      }
+
+      if (variationNodes.length === 0) {
+        // Engine hiccup -- fall back to the normal path rather than
+        // breaking autoplay over a failed demo.
+        stepView(1);
+        scheduleAutoplayStep();
+        return;
+      }
+
+      blunderDemo = { nodes: variationNodes, index: 0, branchNode: branchNode };
+      scheduleAutoplayStep();
+    });
+  }
+
+  // Builds a short (up to 5-ply) "what the engine considers best" line as a
+  // tree variation branching off branchNode, one ply at a time since each
+  // engine call needs the position the previous one produced. Runs against
+  // a scratch Chess instance rather than the live `game`/board, so the
+  // visible position doesn't move until stepBlunderDemo actually navigates
+  // into each returned node. Resolves with whatever nodes were built --
+  // possibly empty (the very first engine call failing) or shorter than 5
+  // (engine ran out of moves, or the line reached game over) -- rather than
+  // rejecting, since a partial/failed demo should fall back to normal
+  // autoplay, not break it.
+  function buildBlunderVariation(branchNode) {
+    var scratchGame = new Chess(branchNode.fen);
+    var variationNodes = [];
+
+    function nextPly(currentNode, plyIndex) {
+      if (plyIndex >= 5 || scratchGame.game_over()) {
+        return Promise.resolve(variationNodes);
+      }
+
+      return window.ApiClient.getEngineBestMoves({ fen: scratchGame.fen() }).then(function (result) {
+        var best = result && result.moves && result.moves[0];
+        if (!best) {
+          return variationNodes;
+        }
+
+        var moveObj = scratchGame.move(best.move);
+        if (!moveObj) {
+          return variationNodes;
+        }
+
+        var childNode = tree.addMove(currentNode, {
+          san: moveObj.san,
+          from: moveObj.from,
+          to: moveObj.to,
+          promotion: moveObj.promotion || null,
+          color: moveObj.color,
+          fen: scratchGame.fen()
+        });
+        variationNodes.push(childNode);
+
+        return nextPly(childNode, plyIndex + 1);
+      }).catch(function () {
+        return variationNodes;
+      });
+    }
+
+    return nextPly(branchNode, 0);
+  }
+
+  // One tick of the blunder-demo sub-loop kicked off by autoplayStep/
+  // startBlunderDemo -- walks blunderDemo.nodes one per tick, same cadence
+  // as normal autoplay. The first node's transition announces the blunder
+  // instead of the usual "announce this node's move" speech (see
+  // renderViewPosition's announceOverride param). Once every demo node has
+  // had its tick, one more tick jumps back to the real position just before
+  // the blunder (blunderDemo.branchNode) and clears blunderDemo, handing
+  // control back to autoplayStep above -- nextNode.blunderShown is already
+  // set by then, so that next tick just plays the actual blunder move and
+  // continues the real game as usual.
+  function stepBlunderDemo() {
+    var demo = blunderDemo;
+
+    if (demo.index >= demo.nodes.length) {
+      blunderDemo = null;
+      tree.goToNode(demo.branchNode);
+      renderViewPosition();
+      renderMoveList();
+      scheduleAutoplayStep();
+      return;
+    }
+
+    var node = demo.nodes[demo.index];
+    tree.goToNode(node);
+    if (demo.index === 0) {
+      renderViewPosition('This was a blunder. The best move was ' + window.sanToSpeech(node.move.san) + '.');
+    } else {
+      renderViewPosition();
+    }
+    renderMoveList();
+
+    demo.index++;
     scheduleAutoplayStep();
   }
 
@@ -526,13 +680,20 @@ $(function () {
   // the fen field to whatever node the tree currently points at. Every
   // navigation path (arrow keys, move-tree clicks) funnels through here, so
   // it's also the single place that clears stale drawings.
-  function renderViewPosition() {
+  //
+  // announceOverride lets the blunder-demo sub-loop (see stepBlunderDemo)
+  // replace the default "announce this node's own move" speech with a
+  // custom blunder-callout message on the transition into a demo variation,
+  // without duplicating any of this function's other side effects.
+  function renderViewPosition(announceOverride) {
     var node = tree.getCurrent();
     game.load(node.fen);
     analysisBoard.position(node.fen, false);
     $('#fenInput').val(node.fen);
-    // Root node has no move (it's the starting position) -- nothing to announce.
-    if (window.speak && node.move) {
+    if (announceOverride) {
+      if (window.speak) window.speak(announceOverride);
+    } else if (window.speak && node.move) {
+      // Root node has no move (it's the starting position) -- nothing to announce.
       window.speak(window.sanToSpeech(node.move.san));
     }
     refreshEnginePanel();
