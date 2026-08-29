@@ -347,8 +347,19 @@ $(function () {
       return;
     }
 
-    stepView(1);
+    advanceAutoplayMainLine(nextNode);
     scheduleAutoplayStep();
+  }
+
+  // Autoplay always continues along the main line (children[0]) without ever
+  // asking -- once a blunder demo has run, the branch point has more than one
+  // child (the demo variation alongside the real move), which would make
+  // tree.stepForward()/stepView report 'ambiguous' and pop the "Choose a line"
+  // modal (see promptVariationChoice). Bypass that path entirely here.
+  function advanceAutoplayMainLine(node) {
+    tree.goToNode(node);
+    renderViewPosition();
+    renderMoveList();
   }
 
   // Kicks off the async build of a best-line demo variation branching off
