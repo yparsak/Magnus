@@ -110,6 +110,9 @@ $(function () {
     if (window.PromotionLayer) {
       window.PromotionLayer.init(analysisBoard);
     }
+    if (window.EvalGraph) {
+      window.EvalGraph.init($('#evalGraphCanvas')[0]);
+    }
 
     renderGameInfo(gameInfo, orientation);
     if (pageData.opening) {
@@ -128,6 +131,7 @@ $(function () {
     renderMoveList();
     $('#fenInput').val(game.fen());
     refreshEnginePanel();
+    refreshEvalGraph();
   }
 
   // Single choke point for "is this an archive game or a fresh analysis" --
@@ -247,6 +251,7 @@ $(function () {
 
     $(window).on('resize', function () {
       if (analysisBoard) analysisBoard.resize();
+      if (window.EvalGraph) window.EvalGraph.resize();
     });
 
     // Belt-and-suspenders: a same-tab navigation (prev/next game link, or
@@ -508,6 +513,7 @@ $(function () {
     renderMoveList();
     $('#fenInput').val(game.fen());
     refreshEnginePanel();
+    refreshEvalGraph();
     refreshOpeningBook();
 
     clearSquareSelection();
@@ -530,6 +536,7 @@ $(function () {
       window.speak(window.sanToSpeech(node.move.san));
     }
     refreshEnginePanel();
+    refreshEvalGraph();
     refreshOpeningBook();
 
     clearSquareSelection();
@@ -669,6 +676,41 @@ $(function () {
     $('#enginePanel').removeClass('engine-panel-loading');
     renderEngineEval(evalResult);
     renderEngineMoveList(bestMovesResult.moves || []);
+
+    // A fresh/live move has no eval yet (see tree.addMove / completeMove) --
+    // now that the engine has resolved one for this exact position, stamp it
+    // onto the tree so the eval graph (and any future visit to this node)
+    // has it, then redraw the graph so the new point appears immediately.
+    var currentMove = tree.getCurrent().move;
+    if (currentMove && currentMove.eval === null && evalResult.evaluation) {
+      currentMove.eval = evalToPawns(evalResult.evaluation);
+      refreshEvalGraph();
+    }
+  }
+
+  // Mirrors scripts/evaluateGames.js's evalToPawns() so a live-resolved eval
+  // matches how final_eval is computed for stored games: 'cp' is centipawns
+  // (divide by 100), 'mate' has no meaningful magnitude so a large-magnitude
+  // sentinel with the correct sign is stored instead.
+  function evalToPawns(evaluation) {
+    if (evaluation.type === 'mate') {
+      return evaluation.value < 0 ? -100 : 100;
+    }
+    return evaluation.value / 100;
+  }
+
+  // Rebuilds the eval-graph points array from the tree's main line (root's
+  // {ply:0, eval:0} plus every main-line move's eval) and redraws. Called
+  // alongside refreshEnginePanel from every position-changing path, so the
+  // graph always mirrors what the engine panel and move list are showing.
+  function refreshEvalGraph() {
+    if (!window.EvalGraph) {
+      return;
+    }
+    var points = [{ ply: 0, eval: 0 }].concat(tree.getMainLine().map(function (node) {
+      return { ply: node.ply, eval: node.move.eval };
+    }));
+    window.EvalGraph.render(points);
   }
 
   function renderEngineEval(evalResult) {

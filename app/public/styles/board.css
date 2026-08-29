@@ -406,6 +406,22 @@ div[class*="spare-pieces-"] {
     color: #d5d5d5;
 }
 
+/* Evaluation graph (see eval-graph.js) -- sits above Opening Book at the top
+   of the left panel, so give it its own bottom margin since .left-panel's
+   sections otherwise sit flush with no gap between them. */
+.eval-graph-section {
+    margin-bottom: 12px;
+}
+
+.eval-graph-canvas {
+    background: #1a1a1a;
+    border: 1px solid #808080;
+    border-radius: 4px;
+    display: block;
+    height: 100px;
+    width: 100%;
+}
+
 .opening-book-section {
     display: flex;
     flex-direction: column;
