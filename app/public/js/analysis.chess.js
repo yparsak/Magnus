@@ -493,7 +493,7 @@ $(function () {
   function completeMove(moveObj) {
     playMoveSound();
     if (window.speak) {
-      window.speak(moveObj.san);
+      window.speak(window.sanToSpeech(moveObj.san));
     }
 
     tree.addMove(tree.getCurrent(), {
@@ -527,7 +527,7 @@ $(function () {
     $('#fenInput').val(node.fen);
     // Root node has no move (it's the starting position) -- nothing to announce.
     if (window.speak && node.move) {
-      window.speak(node.move.san);
+      window.speak(window.sanToSpeech(node.move.san));
     }
     refreshEnginePanel();
     refreshOpeningBook();

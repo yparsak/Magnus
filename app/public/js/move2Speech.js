@@ -9,6 +9,43 @@ const pieceNames = {
 };
 
 /**
+ * Converts short algebraic notation (SAN) into a short spoken phrase, e.g.
+ * "Nf3" -> "Knight f3", "exd5" -> "E pawn takes d5", "O-O" -> "castle short side".
+ * @param {string} san
+ * @returns {string}
+ */
+function sanToSpeech(san) {
+  if (!san) return '';
+
+  const clean = san.replace(/[+#]$/, '');
+
+  if (clean === 'O-O') return 'castle short side';
+  if (clean === 'O-O-O') return 'castle long side';
+
+  const promotionMatch = clean.match(/=([QRBN])$/);
+  const body = promotionMatch ? clean.slice(0, -promotionMatch[0].length) : clean;
+  const promotionText = promotionMatch ? ` promotes to ${pieceNames[promotionMatch[1].toLowerCase()]}` : '';
+
+  // Destination square is always the last two characters of the SAN body,
+  // regardless of any disambiguation characters (e.g. "Nbd7") in between.
+  const destination = body.slice(-2);
+  const isCapture = body.includes('x');
+
+  const pieceLetterMatch = body.match(/^[NBRQK]/);
+  if (pieceLetterMatch) {
+    const pieceName = pieceNames[pieceLetterMatch[0].toLowerCase()];
+    const capitalized = pieceName.charAt(0).toUpperCase() + pieceName.slice(1);
+    return (isCapture ? `${capitalized} takes ${destination}` : `${capitalized} ${destination}`) + promotionText;
+  }
+
+  // No piece letter -- a pawn move. Captures carry the origin file (e.g. "exd5").
+  if (isCapture) {
+    return `${body[0].toUpperCase()} pawn takes ${destination}${promotionText}`;
+  }
+  return `Pawn ${destination}${promotionText}`;
+}
+
+/**
  * Converts an engine move into spoken English text.
  * @param {string} fen - The current board state in FEN notation
  * @param {string|object} move - The move from the engine (e.g., "e2e4", "g1f3", "e7e8q") or a move object
@@ -86,8 +123,15 @@ function toggleSound() {
   window.dispatchEvent(new CustomEvent('soundToggled', { detail: { soundEnabled } }));
 }
 
+// Timestamp of the last utterance actually spoken -- lets speak() throttle
+// itself below, so mashing arrow keys doesn't queue up a pile of overlapping
+// announcements.
+let lastSpokenAt = 0;
+const SPEECH_THROTTLE_MS = 1000;
+
 /**
- * Speaks the given text using the browser's SpeechSynthesis API.
+ * Speaks the given text using the browser's SpeechSynthesis API. Skipped if
+ * the previous utterance was spoken less than SPEECH_THROTTLE_MS ago.
  * @param {string} text
  * @returns {Promise}
  */
@@ -97,6 +141,12 @@ function speak(text) {
       resolve();
       return;
     }
+    const now = Date.now();
+    if (now - lastSpokenAt < SPEECH_THROTTLE_MS) {
+      resolve();
+      return;
+    }
+    lastSpokenAt = now;
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.onend = () => resolve();
     utterance.onerror = () => resolve();
