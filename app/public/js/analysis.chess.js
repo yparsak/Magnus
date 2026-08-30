@@ -398,12 +398,13 @@ $(function () {
   // to the start (same as loading a fresh game would look) and flip the
   // button back to Play rather than scheduling another tick.
   //
-  // Before stepping into a move that was an actual blunder (game_moves.loss
-  // === 3), detour into a short engine-best-line demo first (see
-  // startBlunderDemo) rather than just playing the blunder straight through
-  // -- nextNode.blunderShown guarantees that detour fires only once per
-  // blunder, so pausing/rewinding/replaying over the same spot doesn't
-  // rebuild the variation again.
+  // A move flagged as an actual blunder (game_moves.loss === 3) is still
+  // played and announced right here exactly like any other move -- only
+  // *after* it's on the board does a short engine-best-line detour kick in
+  // (see startBlunderDemo), narrating the blunder and rewinding to show what
+  // should have been played instead. nextNode.blunderShown guarantees that
+  // detour fires only once per blunder, so pausing/rewinding/replaying over
+  // the same spot doesn't rebuild the variation again.
   function autoplayStep() {
     if (blunderDemo) {
       stepBlunderDemo();
@@ -424,13 +425,14 @@ $(function () {
 
     var node = tree.getCurrent();
     var nextNode = node.children[0];
+    advanceAutoplayMainLine(nextNode);
+
     if (nextNode.move && nextNode.move.loss === 3 && !nextNode.blunderShown) {
       nextNode.blunderShown = true;
-      startBlunderDemo(node);
+      startBlunderDemo(node, nextNode);
       return;
     }
 
-    advanceAutoplayMainLine(nextNode);
     scheduleAutoplayStep();
   }
 
@@ -445,33 +447,59 @@ $(function () {
     renderMoveList();
   }
 
-  // Kicks off the async build of a best-line demo variation branching off
-  // branchNode (the position just before a blunder that's about to be
-  // autoplayed) -- see buildBlunderVariation. Takes over scheduling until
-  // the demo is ready to walk: no stepView/scheduleAutoplayStep call happens
-  // here, since the ~5 sequential engine round-trips this waits on already
-  // fill that role. autoplayTimer is set to a placeholder for the duration
-  // so a pause click mid-build is still recognized as "stop the running
-  // autoplay" rather than mistaken for "nothing is running, so start it".
-  function startBlunderDemo(branchNode) {
+  // Kicks off the post-blunder narration + engine best-line demo once
+  // blunderNode (an actual blunder, game_moves.loss === 3) has already been
+  // played and announced by autoplayStep like any other move. "This was a
+  // blunder" and the name of the move being returned to are chained
+  // explicitly off speak()'s returned promise (see speakAutoplayIntro) --
+  // firing them back to back would otherwise trip speak()'s 1s throttle and
+  // silently drop the second one. Only once both have been spoken does the
+  // board rewind to branchNode (the position just before the blunder) and
+  // the ~5-ply engine line get built (see buildBlunderVariation).
+  // autoplayTimer is set to a placeholder for the whole stretch so a pause
+  // click mid-way is still recognized as "stop the running autoplay" rather
+  // than mistaken for "nothing is running, so start it".
+  function startBlunderDemo(branchNode, blunderNode) {
     var generation = autoplayGeneration;
     autoplayTimer = -1;
 
-    buildBlunderVariation(branchNode).then(function (variationNodes) {
+    var goBackText = branchNode.move
+      ? 'Go back to previous move, ' + window.sanToSpeech(branchNode.move.san) + '.'
+      : 'Go back to the previous move.';
+
+    var narrated = window.speak
+      ? window.speak('This was a blunder.').then(function () { return window.speak(goBackText); })
+      : Promise.resolve();
+
+    narrated.then(function () {
       if (generation !== autoplayGeneration) {
-        return; // stopAutoplay ran while the engine calls were in flight
+        return; // stopAutoplay ran while the narration was being spoken
       }
 
-      if (variationNodes.length === 0) {
-        // Engine hiccup -- fall back to the normal path rather than
-        // breaking autoplay over a failed demo.
-        stepView(1);
+      tree.goToNode(branchNode);
+      renderViewPosition();
+      renderMoveList();
+
+      return buildBlunderVariation(branchNode).then(function (variationNodes) {
+        if (generation !== autoplayGeneration) {
+          return; // stopAutoplay ran while the engine calls were in flight
+        }
+
+        if (variationNodes.length === 0) {
+          // Engine hiccup -- resume from the blunder move already played
+          // rather than breaking autoplay over a failed demo. Announcement
+          // is suppressed since that move was already announced once, back
+          // when autoplayStep played it.
+          tree.goToNode(blunderNode);
+          renderViewPosition(null, true);
+          renderMoveList();
+          scheduleAutoplayStep();
+          return;
+        }
+
+        blunderDemo = { nodes: variationNodes, index: 0, resumeNode: blunderNode };
         scheduleAutoplayStep();
-        return;
-      }
-
-      blunderDemo = { nodes: variationNodes, index: 0, branchNode: branchNode };
-      scheduleAutoplayStep();
+      });
     });
   }
 
@@ -524,23 +552,22 @@ $(function () {
     return nextPly(branchNode, 0);
   }
 
-  // One tick of the blunder-demo sub-loop kicked off by autoplayStep/
-  // startBlunderDemo -- walks blunderDemo.nodes one per tick, same cadence
-  // as normal autoplay. The first node's transition announces the blunder
-  // instead of the usual "announce this node's move" speech (see
-  // renderViewPosition's announceOverride param). Once every demo node has
-  // had its tick, one more tick jumps back to the real position just before
-  // the blunder (blunderDemo.branchNode) and clears blunderDemo, handing
-  // control back to autoplayStep above -- nextNode.blunderShown is already
-  // set by then, so that next tick just plays the actual blunder move and
-  // continues the real game as usual.
+  // One tick of the blunder-demo sub-loop kicked off by startBlunderDemo --
+  // walks blunderDemo.nodes one per tick, same cadence and per-move speech
+  // as normal autoplay (the "this was a blunder" / "go back to..." narration
+  // already happened before the demo started, so each demo ply is just
+  // announced like any other move here). Once every demo node has had its
+  // tick, one more tick jumps forward to the blunder move already played
+  // earlier (blunderDemo.resumeNode) and clears blunderDemo, handing control
+  // back to autoplayStep -- landing there rather than replaying it is what
+  // avoids re-playing/re-announcing the blunder a second time.
   function stepBlunderDemo() {
     var demo = blunderDemo;
 
     if (demo.index >= demo.nodes.length) {
       blunderDemo = null;
-      tree.goToNode(demo.branchNode);
-      renderViewPosition();
+      tree.goToNode(demo.resumeNode);
+      renderViewPosition(null, true);
       renderMoveList();
       scheduleAutoplayStep();
       return;
@@ -548,11 +575,7 @@ $(function () {
 
     var node = demo.nodes[demo.index];
     tree.goToNode(node);
-    if (demo.index === 0) {
-      renderViewPosition('This was a blunder. The best move was ' + window.sanToSpeech(node.move.san) + '.');
-    } else {
-      renderViewPosition();
-    }
+    renderViewPosition();
     renderMoveList();
 
     demo.index++;
@@ -775,18 +798,20 @@ $(function () {
   // navigation path (arrow keys, move-tree clicks) funnels through here, so
   // it's also the single place that clears stale drawings.
   //
-  // announceOverride lets the blunder-demo sub-loop (see stepBlunderDemo)
-  // replace the default "announce this node's own move" speech with a
-  // custom blunder-callout message on the transition into a demo variation,
-  // without duplicating any of this function's other side effects.
-  function renderViewPosition(announceOverride) {
+  // announceOverride lets a caller replace the default "announce this node's
+  // own move" speech with a custom message. suppressAnnounce lets a caller
+  // (see startBlunderDemo/stepBlunderDemo's resumeNode handling) silence
+  // that default speech entirely when re-landing on a node whose move was
+  // already announced once, without duplicating any of this function's
+  // other side effects.
+  function renderViewPosition(announceOverride, suppressAnnounce) {
     var node = tree.getCurrent();
     game.load(node.fen);
     analysisBoard.position(node.fen, false);
     $('#fenInput').val(node.fen);
     if (announceOverride) {
       if (window.speak) window.speak(announceOverride);
-    } else if (window.speak && node.move) {
+    } else if (!suppressAnnounce && window.speak && node.move) {
       // Root node has no move (it's the starting position) -- nothing to announce.
       window.speak(window.sanToSpeech(node.move.san));
     }

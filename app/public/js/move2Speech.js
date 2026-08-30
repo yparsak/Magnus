@@ -10,7 +10,7 @@ const pieceNames = {
 
 /**
  * Converts short algebraic notation (SAN) into a short spoken phrase, e.g.
- * "Nf3" -> "Knight f3", "exd5" -> "E pawn takes d5", "O-O" -> "castle short side".
+ * "Nf3" -> "Knight f3", "exd5" -> "E pawn takes d5", "O-O" -> "castle king side".
  * @param {string} san
  * @returns {string}
  */
@@ -23,7 +23,7 @@ function sanToSpeech(san) {
 
   const clean = san.replace(/[+#]$/, '');
 
-  if (clean === 'O-O') return 'castle short side' + checkText;
+  if (clean === 'O-O') return 'castle king side' + checkText;
   if (clean === 'O-O-O') return 'castle long side' + checkText;
 
   const promotionMatch = clean.match(/=([QRBN])$/);
