@@ -226,6 +226,67 @@ $(function () {
     return date ? new Date(date).toLocaleDateString() : '--';
   }
 
+  // Spoken-friendly date (e.g. "August 18, 2026") for the autoplay intro --
+  // forced to UTC since game.date comes back as a UTC-midnight timestamp, so
+  // formatting it in the browser's local time zone could shift it a day.
+  function formatSpokenDate(date) {
+    return date ? new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'UTC'
+    }) : null;
+  }
+
+  // Intro lines spoken once, in order, before autoplay's first move (see
+  // startAutoplay) -- built from the page's originally-loaded gameInfo/opening
+  // rather than anything live-detected, so it reflects the game as recorded.
+  function buildAutoplayIntroTexts() {
+    var pageData = window.MAGNUS_PAGE_DATA || {};
+    var gameInfo = pageData.gameInfo;
+    var opening = pageData.opening;
+    var texts = [];
+
+    if (gameInfo && gameInfo.date) {
+      texts.push('This game was played on ' + formatSpokenDate(gameInfo.date) + '.');
+    }
+    if (opening && opening.eco && opening.eco !== '?') {
+      texts.push('The opening line ' + opening.eco + ' dash ' + opening.name + ' was played.');
+    }
+    return texts;
+  }
+
+  // Sequentially awaits each speak() call rather than firing them back to
+  // back -- speak()'s 1s throttle (see move2Speech.js) only guards against
+  // overlapping utterances by timestamping when one *starts*, so firing the
+  // next part before the previous has finished speaking would silently drop
+  // it instead of queuing it.
+  function speakAutoplayIntro() {
+    var texts = buildAutoplayIntroTexts();
+    if (!window.speak || texts.length === 0) {
+      return Promise.resolve();
+    }
+    return texts.reduce(function (promise, text) {
+      return promise.then(function () { return window.speak(text); });
+    }, Promise.resolve());
+  }
+
+  // Spoken result for autoplay's end-of-game announcement -- gameInfo.result
+  // is 'win'/'draw'/'loss' relative to gameInfo.side (the tracked account's
+  // color, 0 = black, non-zero = white; mirrors the orientation derivation in
+  // analysisRouter.js's loadGamePageData), not a raw PGN result string.
+  function describeGameResult(gameInfo) {
+    if (!gameInfo || !gameInfo.result) {
+      return '';
+    }
+    if (gameInfo.result === 'draw') {
+      return 'The game ended in a draw.';
+    }
+    var trackedColor = gameInfo.side === 0 ? 'black' : 'white';
+    var winningColor = gameInfo.result === 'win' ? trackedColor : (trackedColor === 'white' ? 'black' : 'white');
+    return 'The game ended as a win for ' + (winningColor.charAt(0).toUpperCase() + winningColor.slice(1)) + '.';
+  }
+
   function bindControls() {
     $('#linkBackToEditor').on('click', function (e) {
       e.preventDefault();
@@ -292,7 +353,26 @@ $(function () {
 
   function startAutoplay() {
     setPlayPauseLabel(true);
-    scheduleAutoplayStep();
+    // Only announce the intro when starting fresh from the root -- resuming
+    // autoplay after a mid-game pause has a parent node.
+    if (tree.getCurrent().parent) {
+      scheduleAutoplayStep();
+      return;
+    }
+
+    // Placeholder timer + generation guard while the intro is being spoken,
+    // same pattern startBlunderDemo uses for its own async gap -- otherwise
+    // a Pause click during the intro would both look like "nothing is
+    // running" (autoplayTimer still null) and fail to cancel the deferred
+    // scheduleAutoplayStep once the intro finishes.
+    var generation = autoplayGeneration;
+    autoplayTimer = -1;
+    speakAutoplayIntro().then(function () {
+      if (generation !== autoplayGeneration) {
+        return; // stopAutoplay ran while the intro was being spoken
+      }
+      scheduleAutoplayStep();
+    });
   }
 
   // Clears the pending timer (if any) and reverts the button to Play, but
@@ -331,6 +411,9 @@ $(function () {
     }
 
     if (tree.getCurrent().children.length === 0) {
+      if (window.speak) {
+        window.speak(describeGameResult((window.MAGNUS_PAGE_DATA || {}).gameInfo));
+      }
       tree.goToStart();
       renderViewPosition();
       renderMoveList();

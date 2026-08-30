@@ -17,10 +17,14 @@ const pieceNames = {
 function sanToSpeech(san) {
   if (!san) return '';
 
+  const isCheckmate = san.endsWith('#');
+  const isCheck = !isCheckmate && san.endsWith('+');
+  const checkText = isCheckmate ? ' check mate' : (isCheck ? ' check' : '');
+
   const clean = san.replace(/[+#]$/, '');
 
-  if (clean === 'O-O') return 'castle short side';
-  if (clean === 'O-O-O') return 'castle long side';
+  if (clean === 'O-O') return 'castle short side' + checkText;
+  if (clean === 'O-O-O') return 'castle long side' + checkText;
 
   const promotionMatch = clean.match(/=([QRBN])$/);
   const body = promotionMatch ? clean.slice(0, -promotionMatch[0].length) : clean;
@@ -35,14 +39,14 @@ function sanToSpeech(san) {
   if (pieceLetterMatch) {
     const pieceName = pieceNames[pieceLetterMatch[0].toLowerCase()];
     const capitalized = pieceName.charAt(0).toUpperCase() + pieceName.slice(1);
-    return (isCapture ? `${capitalized} takes ${destination}` : `${capitalized} ${destination}`) + promotionText;
+    return (isCapture ? `${capitalized} takes ${destination}` : `${capitalized} ${destination}`) + promotionText + checkText;
   }
 
   // No piece letter -- a pawn move. Captures carry the origin file (e.g. "exd5").
   if (isCapture) {
-    return `${body[0].toUpperCase()} pawn takes ${destination}${promotionText}`;
+    return `${body[0].toUpperCase()} pawn takes ${destination}${promotionText}${checkText}`;
   }
-  return `Pawn ${destination}${promotionText}`;
+  return `Pawn ${destination}${promotionText}${checkText}`;
 }
 
 /**
