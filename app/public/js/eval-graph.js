@@ -8,7 +8,7 @@
 //
 // Usage:
 //   EvalGraph.init(document.getElementById('evalGraphCanvas'));
-//   EvalGraph.render([{ ply: 0, eval: 0 }, { ply: 1, eval: 0.3 }, ...]);
+//   EvalGraph.render([{ ply: 0, eval: 0 }, { ply: 1, eval: 0.3 }, ...], currentPly);
 //   // on window resize, alongside analysisBoard.resize():
 //   EvalGraph.resize();
 // =============================================================================
@@ -24,12 +24,20 @@
   var ZERO_LINE_COLOR = 'rgba(224, 224, 224, 0.25)';
   var LINE_COLOR = '#2c73b8';
   var LINE_WIDTH = 2;
+  // Warm orange against the cool blue line/light zero-line so the current
+  // position always pops, with a white outline to keep it crisp when it
+  // lands on top of the line itself.
+  var MARKER_COLOR = '#ff8c00';
+  var MARKER_STROKE_COLOR = '#ffffff';
+  var MARKER_RADIUS = 5;
+  var MARKER_STROKE_WIDTH = 1.5;
 
   var canvas = null;
   var ctx = null;
   var cssWidth = 0;
   var cssHeight = 0;
   var lastPoints = [];
+  var currentPly = null;
 
   function init(canvasEl) {
     if (!canvasEl) {
@@ -58,8 +66,9 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  function render(points) {
+  function render(points, ply) {
     lastPoints = points || [];
+    currentPly = ply === undefined ? null : ply;
     draw();
   }
 
@@ -117,6 +126,39 @@
     ctx.strokeStyle = LINE_COLOR;
     ctx.lineWidth = LINE_WIDTH;
     ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    drawCurrentMarker(resolved, xStep, centerY, scales);
+  }
+
+  // Marker for whichever ply is currently being viewed, drawn on top of the
+  // line. Only drawn when that ply's eval is actually part of the resolved
+  // prefix -- if the current move's eval hasn't come back yet, there's no
+  // y-position to place it at.
+  function drawCurrentMarker(resolved, xStep, centerY, scales) {
+    if (currentPly === null) {
+      return;
+    }
+    var index = -1;
+    for (var i = 0; i < resolved.length; i++) {
+      if (resolved[i].ply === currentPly) {
+        index = i;
+        break;
+      }
+    }
+    if (index === -1) {
+      return;
+    }
+
+    var x = xStep * index;
+    var y = yForEval(resolved[index].eval, centerY, scales);
+
+    ctx.beginPath();
+    ctx.arc(x, y, MARKER_RADIUS, 0, Math.PI * 2);
+    ctx.fillStyle = MARKER_COLOR;
+    ctx.fill();
+    ctx.strokeStyle = MARKER_STROKE_COLOR;
+    ctx.lineWidth = MARKER_STROKE_WIDTH;
     ctx.stroke();
   }
 

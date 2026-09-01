@@ -990,7 +990,7 @@ $(function () {
     var points = [{ ply: 0, eval: 0 }].concat(tree.getMainLine().map(function (node) {
       return { ply: node.ply, eval: node.move.eval };
     }));
-    window.EvalGraph.render(points);
+    window.EvalGraph.render(points, tree.getCurrent().ply);
   }
 
   function renderEngineEval(evalResult) {
