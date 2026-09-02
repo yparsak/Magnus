@@ -450,26 +450,19 @@ $(function () {
   // Kicks off the post-blunder narration + engine best-line demo once
   // blunderNode (an actual blunder, game_moves.loss === 3) has already been
   // played and announced by autoplayStep like any other move. "This was a
-  // blunder" and the name of the move being returned to are chained
-  // explicitly off speak()'s returned promise (see speakAutoplayIntro) --
-  // firing them back to back would otherwise trip speak()'s 1s throttle and
-  // silently drop the second one. Only once both have been spoken does the
-  // board rewind to branchNode (the position just before the blunder) and
-  // the ~5-ply engine line get built (see buildBlunderVariation).
-  // autoplayTimer is set to a placeholder for the whole stretch so a pause
-  // click mid-way is still recognized as "stop the running autoplay" rather
-  // than mistaken for "nothing is running, so start it".
+  // blunder" is spoken first; only once it's resolved does the board
+  // silently rewind to branchNode (the position just before the blunder --
+  // its own move was already announced once when it was originally played,
+  // so that rewind must not re-announce it) and the ~5-ply engine line get
+  // built (see buildBlunderVariation). autoplayTimer is set to a
+  // placeholder for the whole stretch so a pause click mid-way is still
+  // recognized as "stop the running autoplay" rather than mistaken for
+  // "nothing is running, so start it".
   function startBlunderDemo(branchNode, blunderNode) {
     var generation = autoplayGeneration;
     autoplayTimer = -1;
 
-    var goBackText = branchNode.move
-      ? 'Go back to previous move, ' + window.sanToSpeech(branchNode.move.san) + '.'
-      : 'Go back to the previous move.';
-
-    var narrated = window.speak
-      ? window.speak('This was a blunder.').then(function () { return window.speak(goBackText); })
-      : Promise.resolve();
+    var narrated = window.speak ? window.speak('This was a blunder.') : Promise.resolve();
 
     narrated.then(function () {
       if (generation !== autoplayGeneration) {
@@ -477,7 +470,7 @@ $(function () {
       }
 
       tree.goToNode(branchNode);
-      renderViewPosition();
+      renderViewPosition(null, true);
       renderMoveList();
 
       return buildBlunderVariation(branchNode).then(function (variationNodes) {
@@ -554,22 +547,43 @@ $(function () {
 
   // One tick of the blunder-demo sub-loop kicked off by startBlunderDemo --
   // walks blunderDemo.nodes one per tick, same cadence and per-move speech
-  // as normal autoplay (the "this was a blunder" / "go back to..." narration
-  // already happened before the demo started, so each demo ply is just
-  // announced like any other move here). Once every demo node has had its
-  // tick, one more tick jumps forward to the blunder move already played
-  // earlier (blunderDemo.resumeNode) and clears blunderDemo, handing control
-  // back to autoplayStep -- landing there rather than replaying it is what
-  // avoids re-playing/re-announcing the blunder a second time.
+  // as normal autoplay (the "this was a blunder" narration already happened
+  // before the demo started, so each demo ply is just announced like any
+  // other move here). Once every demo node has had its tick, narrate "The
+  // next move in the main line was <SAN>" -- chained off speak()'s returned
+  // promise the same throttle-safe way startBlunderDemo does -- before
+  // jumping forward to the blunder move already played earlier
+  // (blunderDemo.resumeNode) and clearing blunderDemo, handing control back
+  // to autoplayStep. Landing there with announcement suppressed (rather than
+  // replaying it) is what avoids re-announcing the blunder a second time.
+  // autoplayTimer gets the same placeholder treatment as startBlunderDemo so
+  // a pause click during this narration still reads as "stop the running
+  // autoplay".
   function stepBlunderDemo() {
     var demo = blunderDemo;
 
     if (demo.index >= demo.nodes.length) {
       blunderDemo = null;
-      tree.goToNode(demo.resumeNode);
-      renderViewPosition(null, true);
-      renderMoveList();
-      scheduleAutoplayStep();
+
+      var generation = autoplayGeneration;
+      autoplayTimer = -1;
+      var resumeNode = demo.resumeNode;
+      var resumeText = resumeNode.move ? window.sanToSpeech(resumeNode.move.san) : '';
+
+      var narrated = window.speak
+        ? window.speak('The next move in the main line was').then(function () { return window.speak(resumeText); })
+        : Promise.resolve();
+
+      narrated.then(function () {
+        if (generation !== autoplayGeneration) {
+          return; // stopAutoplay ran while the narration was being spoken
+        }
+
+        tree.goToNode(resumeNode);
+        renderViewPosition(null, true);
+        renderMoveList();
+        scheduleAutoplayStep();
+      });
       return;
     }
 
