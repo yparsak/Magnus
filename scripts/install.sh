@@ -189,6 +189,13 @@
     source "${APP_DOTENV}"
   fi
 
+  # -- Re-run against an existing APP_PATH skips the block above that fetches
+  # -- TAG_NAME from GitHub, so recover it from the previously-written VERSION=
+  # -- value instead of leaving it empty.
+  if [ -z "$TAG_NAME" ]; then
+    TAG_NAME="$VERSION"
+  fi
+
   # -- DB Password
   if [[ -z "${DB_PASSWORD}" ]]; then
     while true; do

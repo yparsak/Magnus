@@ -4,6 +4,12 @@ APP_NAME="Magnus"
 DOWNLOAD="downloadGames"
 EVALUATE="evaluateGames"
 
+ENV_FILE=~/${APP_NAME}/app/.env
+if [ -f "$ENV_FILE" ]; then
+  source "$ENV_FILE"
+fi
+LOGFILE="${LOGFILE:-/tmp/${APP_NAME}.log}"
+
 get_magnus_pid() {
     pgrep -f "node ${APP_NAME,,}.js" | head -n 1
 }
@@ -20,7 +26,7 @@ start() {
   echo "Starting $APP_NAME"
   cd ~/${APP_NAME}/app/ || exit 1
 
-  nohup node ${APP_NAME,,}.js >> /tmp/${APP_NAME}.log 2>&1 &
+  nohup node ${APP_NAME,,}.js >> "$LOGFILE" 2>&1 &
   new_pid=$!
   echo "${APP_NAME} started in the background (PID: ${new_pid})"
 
@@ -28,7 +34,7 @@ start() {
   echo "Starting $DOWNLOAD"
   cd ~/${APP_NAME}/scripts/ || exit 1
 
-  nohup node ${DOWNLOAD}.js >> /tmp/${APP_NAME}.log 2>&1 &
+  nohup node ${DOWNLOAD}.js >> "$LOGFILE" 2>&1 &
   new_pid=$!
   echo "${DOWNLOAD} started in the background (PID: ${new_pid})"
 
@@ -36,7 +42,7 @@ start() {
   echo "Starting $EVALUATE"
   cd ~/${APP_NAME}/scripts/ || exit 1
 
-  nohup node ${EVALUATE}.js >> /tmp/${APP_NAME}.log 2>&1 &
+  nohup node ${EVALUATE}.js >> "$LOGFILE" 2>&1 &
   new_pid=$!
   echo "${EVALUATE} started in the background (PID: ${new_pid})"
 
