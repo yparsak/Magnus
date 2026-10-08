@@ -48,27 +48,32 @@ $(function () {
   // Timer driving autoplay's step-forward loop (see startAutoplay/
   // autoplayStep) -- non-null exactly while autoplay is running, so it also
   // doubles as the "is autoplay active" flag and lets pause/cleanup just
-  // clearTimeout it unconditionally. While a blunder demo is being built
-  // (see startBlunderDemo) there's no real timer to hold yet, so this is set
+  // clearTimeout it unconditionally. While a side-line demo is being built
+  // (see startSideLineDemo) there's no real timer to hold yet, so this is set
   // to a harmless placeholder instead of a setTimeout id -- it just needs to
   // stay truthy so togglePlayPause still reads autoplay as "running".
   var autoplayTimer = null;
   var AUTOPLAY_STEP_DELAY_MS = 3000;
 
-  // Bumped every time autoplay is stopped -- startBlunderDemo captures this
-  // before its ~5 sequential engine round-trips begin, and checks it again
+  // Bumped every time autoplay is stopped -- startSideLineDemo captures this
+  // before its sequential engine round-trips begin, and checks it again
   // once they resolve, so a pause clicked mid-build (the only way this can
   // race) is detected and the stale variation is discarded instead of
   // navigating a board the user no longer expects to be autoplaying.
   var autoplayGeneration = 0;
 
-  // Non-null exactly while autoplay is walking a blunder-demo variation (see
-  // autoplayStep/startBlunderDemo/stepBlunderDemo): the ordered demo nodes,
+  // Non-null exactly while autoplay is walking a side-line demo (see
+  // autoplayStep/startSideLineDemo/stepSideLineDemo): the ordered demo nodes,
   // the index of the one currently on screen, and the real-game node to
   // return to once the demo finishes. Cleared in stopAutoplay so a manual
   // pause mid-demo never leaves stale state for the next Play click to trip
   // over.
-  var blunderDemo = null;
+  var sideLineDemo = null;
+
+  // How many plies deep the post-blunder "what the engine would have played"
+  // demo runs. A missed-mate demo sizes itself off the mate distance instead
+  // (see autoplayStep).
+  var BLUNDER_DEMO_PLIES = 5;
 
   // Single shared Audio instance for the move sound (see completeMove) --
   // reused across every move rather than a fresh Audio() per move so rapid
@@ -361,7 +366,7 @@ $(function () {
     }
 
     // Placeholder timer + generation guard while the intro is being spoken,
-    // same pattern startBlunderDemo uses for its own async gap -- otherwise
+    // same pattern startSideLineDemo uses for its own async gap -- otherwise
     // a Pause click during the intro would both look like "nothing is
     // running" (autoplayTimer still null) and fail to cancel the deferred
     // scheduleAutoplayStep once the intro finishes.
@@ -383,7 +388,7 @@ $(function () {
     clearTimeout(autoplayTimer);
     autoplayTimer = null;
     autoplayGeneration++;
-    blunderDemo = null;
+    sideLineDemo = null;
     setPlayPauseLabel(false);
   }
 
@@ -398,20 +403,30 @@ $(function () {
   // to the start (same as loading a fresh game would look) and flip the
   // button back to Play rather than scheduling another tick.
   //
-  // A move flagged as an actual blunder (game_moves.loss === 3) is still
-  // played and announced right here exactly like any other move -- only
-  // *after* it's on the board does a short engine-best-line detour kick in
-  // (see startBlunderDemo), narrating the blunder and rewinding to show what
-  // should have been played instead. nextNode.blunderShown guarantees that
-  // detour fires only once per blunder, so pausing/rewinding/replaying over
-  // the same spot doesn't rebuild the variation again.
+  // Two kinds of move trigger a side-line detour, both played and announced
+  // right here exactly like any other move first -- only *after* one is on
+  // the board does the detour kick in (see startSideLineDemo):
+  //
+  //   1. A missed mate: the position the move left behind is a forced mate
+  //      the game never actually delivered (see missedMateIn). The engine's
+  //      mating line is shown from that same position.
+  //   2. An actual blunder (game_moves.loss === 3): the board rewinds one ply
+  //      and the engine's line from *before* the blunder is shown instead.
+  //
+  // A missed mate wins when a move is both, since the mate is the more
+  // interesting of the two and two back-to-back detours would drag.
+  // nextNode.sideLineShown guarantees at most one detour per move, so
+  // pausing/rewinding/replaying over the same spot doesn't rebuild it.
   function autoplayStep() {
-    if (blunderDemo) {
-      stepBlunderDemo();
+    if (sideLineDemo) {
+      stepSideLineDemo();
       return;
     }
 
-    if (tree.getCurrent().children.length === 0) {
+    var node = tree.getCurrent();
+    var nextNode = mainLineChild(node);
+
+    if (!nextNode) {
       if (window.speak) {
         window.speak(describeGameResult((window.MAGNUS_PAGE_DATA || {}).gameInfo));
       }
@@ -423,21 +438,100 @@ $(function () {
       return;
     }
 
-    var node = tree.getCurrent();
-    var nextNode = node.children[0];
     advanceAutoplayMainLine(nextNode);
 
-    if (nextNode.move && nextNode.move.loss === 3 && !nextNode.blunderShown) {
-      nextNode.blunderShown = true;
-      startBlunderDemo(node, nextNode);
-      return;
+    if (!nextNode.sideLineShown) {
+      var mateIn = missedMateIn(nextNode);
+      if (mateIn !== null) {
+        nextNode.sideLineShown = true;
+        // The mate is in the position nextNode just produced, so the line
+        // branches off -- and resumes at -- that very node: nothing to rewind.
+        startSideLineDemo(nextNode, nextNode, mateIntroText(mateIn), mateIn * 2);
+        return;
+      }
+
+      if (nextNode.move && nextNode.move.loss === 3) {
+        nextNode.sideLineShown = true;
+        startSideLineDemo(node, nextNode, 'This was a blunder.', BLUNDER_DEMO_PLIES);
+        return;
+      }
     }
 
     scheduleAutoplayStep();
   }
 
-  // Autoplay always continues along the main line (children[0]) without ever
-  // asking -- once a blunder demo has run, the branch point has more than one
+  // Number of moves in the forced mate `node` left on the board but the game
+  // never actually played out, or null when there's no such missed mate.
+  //
+  // game_moves.mate_in is signed from White's perspective and evaluated on
+  // the position *after* the move (see scripts/evaluateGames.js), so it is
+  // exactly "the current evaluation" once autoplay has played this node. 0
+  // means the move itself was checkmate -- nothing left to demonstrate.
+  //
+  // Two filters keep this from firing on every move of a won game:
+  //
+  //   - A mate of the same sign already showing before this move means the
+  //     mate isn't news, just the same forced line one ply closer; only its
+  //     first appearance is worth a detour.
+  //   - A mate that the game *did* deliver within its stated distance was
+  //     found, not missed. Checking the main line for a checkmating move
+  //     (SAN '#') within mate_in full moves is what tells the two apart.
+  function missedMateIn(node) {
+    var mateIn = node.move ? node.move.mateIn : null;
+    if (mateIn === null || mateIn === undefined || mateIn === 0) {
+      return null;
+    }
+
+    var previousMate = (node.parent && node.parent.move) ? node.parent.move.mateIn : null;
+    if (previousMate && (previousMate > 0) === (mateIn > 0)) {
+      return null;
+    }
+
+    var moves = Math.abs(mateIn);
+    return mainLineMatesWithin(node, moves * 2) ? null : moves;
+  }
+
+  // Walks up to `plies` main-line moves forward from `node` looking for a
+  // checkmating move. Reads SAN rather than replaying the position into a
+  // Chess instance since every stored move already carries chess.js's own
+  // '#' suffix.
+  function mainLineMatesWithin(node, plies) {
+    var cursor = node;
+    for (var i = 0; i < plies; i++) {
+      cursor = mainLineChild(cursor);
+      if (!cursor) {
+        return false;
+      }
+      if (cursor.move && cursor.move.san && cursor.move.san.indexOf('#') !== -1) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // The real-game continuation of `node`, or null at the end of the line.
+  //
+  // children[0] is the main line *as loaded*, but a side-line demo grafts its
+  // engine moves onto the tree as extra children (see buildEngineVariation)
+  // -- and when the trigger move was the last of the game, those grafted
+  // moves are the only children there are. Skipping anything flagged isDemo
+  // is what stops autoplay from walking an engine variation as if the game
+  // had continued that way.
+  function mainLineChild(node) {
+    for (var i = 0; i < node.children.length; i++) {
+      if (!node.children[i].isDemo) {
+        return node.children[i];
+      }
+    }
+    return null;
+  }
+
+  function mateIntroText(moves) {
+    return 'The following line was mate in ' + moves + (moves === 1 ? ' move.' : ' moves.');
+  }
+
+  // Autoplay always continues along the main line without ever
+  // asking -- once a side-line demo has run, the branch point has more than one
   // child (the demo variation alongside the real move), which would make
   // tree.stepForward()/stepView report 'ambiguous' and pop the "Choose a line"
   // modal (see promptVariationChoice). Bypass that path entirely here.
@@ -447,22 +541,24 @@ $(function () {
     renderMoveList();
   }
 
-  // Kicks off the post-blunder narration + engine best-line demo once
-  // blunderNode (an actual blunder, game_moves.loss === 3) has already been
-  // played and announced by autoplayStep like any other move. "This was a
-  // blunder" is spoken first; only once it's resolved does the board
-  // silently rewind to branchNode (the position just before the blunder --
-  // its own move was already announced once when it was originally played,
-  // so that rewind must not re-announce it) and the ~5-ply engine line get
-  // built (see buildBlunderVariation). autoplayTimer is set to a
-  // placeholder for the whole stretch so a pause click mid-way is still
-  // recognized as "stop the running autoplay" rather than mistaken for
-  // "nothing is running, so start it".
-  function startBlunderDemo(branchNode, blunderNode) {
+  // Kicks off a side-line detour once the move that triggered it has already
+  // been played and announced by autoplayStep like any other move.
+  // `introText` ("This was a blunder." / "The following line was mate in X
+  // moves.") is spoken first; only once it's resolved does the board silently
+  // move to branchNode -- the position the engine line branches off, which is
+  // one ply back for a blunder and the current node itself for a missed mate
+  // -- and the engine line get built (see buildEngineVariation). Either way
+  // that navigation must not re-announce, since branchNode's own move was
+  // already announced when it was originally played. resumeNode is the
+  // real-game node autoplay carries on from once the demo finishes.
+  // autoplayTimer is set to a placeholder for the whole stretch so a pause
+  // click mid-way is still recognized as "stop the running autoplay" rather
+  // than mistaken for "nothing is running, so start it".
+  function startSideLineDemo(branchNode, resumeNode, introText, maxPlies) {
     var generation = autoplayGeneration;
     autoplayTimer = -1;
 
-    var narrated = window.speak ? window.speak('This was a blunder.') : Promise.resolve();
+    var narrated = window.speak ? window.speak(introText) : Promise.resolve();
 
     narrated.then(function () {
       if (generation !== autoplayGeneration) {
@@ -473,45 +569,46 @@ $(function () {
       renderViewPosition(null, true);
       renderMoveList();
 
-      return buildBlunderVariation(branchNode).then(function (variationNodes) {
+      return buildEngineVariation(branchNode, maxPlies).then(function (variationNodes) {
         if (generation !== autoplayGeneration) {
           return; // stopAutoplay ran while the engine calls were in flight
         }
 
         if (variationNodes.length === 0) {
-          // Engine hiccup -- resume from the blunder move already played
-          // rather than breaking autoplay over a failed demo. Announcement
-          // is suppressed since that move was already announced once, back
-          // when autoplayStep played it.
-          tree.goToNode(blunderNode);
+          // Engine hiccup -- resume from the move already played rather than
+          // breaking autoplay over a failed demo. Announcement is suppressed
+          // since that move was already announced once, back when
+          // autoplayStep played it.
+          tree.goToNode(resumeNode);
           renderViewPosition(null, true);
           renderMoveList();
           scheduleAutoplayStep();
           return;
         }
 
-        blunderDemo = { nodes: variationNodes, index: 0, resumeNode: blunderNode };
+        sideLineDemo = { nodes: variationNodes, index: 0, resumeNode: resumeNode };
         scheduleAutoplayStep();
       });
     });
   }
 
-  // Builds a short (up to 5-ply) "what the engine considers best" line as a
-  // tree variation branching off branchNode, one ply at a time since each
+  // Builds a short (up to maxPlies) "what the engine considers best" line as
+  // a tree variation branching off branchNode, one ply at a time since each
   // engine call needs the position the previous one produced. Runs against
   // a scratch Chess instance rather than the live `game`/board, so the
-  // visible position doesn't move until stepBlunderDemo actually navigates
+  // visible position doesn't move until stepSideLineDemo actually navigates
   // into each returned node. Resolves with whatever nodes were built --
-  // possibly empty (the very first engine call failing) or shorter than 5
-  // (engine ran out of moves, or the line reached game over) -- rather than
-  // rejecting, since a partial/failed demo should fall back to normal
-  // autoplay, not break it.
-  function buildBlunderVariation(branchNode) {
+  // possibly empty (the very first engine call failing) or shorter than
+  // maxPlies (engine ran out of moves, or the line reached game over, which
+  // is how a mating line stops on the mate itself) -- rather than rejecting,
+  // since a partial/failed demo should fall back to normal autoplay, not
+  // break it.
+  function buildEngineVariation(branchNode, maxPlies) {
     var scratchGame = new Chess(branchNode.fen);
     var variationNodes = [];
 
     function nextPly(currentNode, plyIndex) {
-      if (plyIndex >= 5 || scratchGame.game_over()) {
+      if (plyIndex >= maxPlies || scratchGame.game_over()) {
         return Promise.resolve(variationNodes);
       }
 
@@ -526,6 +623,11 @@ $(function () {
           return variationNodes;
         }
 
+        // addMove reuses an existing child for the same move, so an engine
+        // line that opens with the move actually played lands back on the
+        // real main-line node -- only genuinely new nodes get flagged as
+        // demo-only (see mainLineChild), never a real game move.
+        var childCountBefore = currentNode.children.length;
         var childNode = tree.addMove(currentNode, {
           san: moveObj.san,
           from: moveObj.from,
@@ -534,6 +636,9 @@ $(function () {
           color: moveObj.color,
           fen: scratchGame.fen()
         });
+        if (currentNode.children.length > childCountBefore) {
+          childNode.isDemo = true;
+        }
         variationNodes.push(childNode);
 
         return nextPly(childNode, plyIndex + 1);
@@ -545,33 +650,31 @@ $(function () {
     return nextPly(branchNode, 0);
   }
 
-  // One tick of the blunder-demo sub-loop kicked off by startBlunderDemo --
-  // walks blunderDemo.nodes one per tick, same cadence and per-move speech
-  // as normal autoplay (the "this was a blunder" narration already happened
-  // before the demo started, so each demo ply is just announced like any
-  // other move here). Once every demo node has had its tick, narrate "The
-  // next move in the main line was <SAN>" -- chained off speak()'s returned
-  // promise the same throttle-safe way startBlunderDemo does -- before
-  // jumping forward to the blunder move already played earlier
-  // (blunderDemo.resumeNode) and clearing blunderDemo, handing control back
-  // to autoplayStep. Landing there with announcement suppressed (rather than
-  // replaying it) is what avoids re-announcing the blunder a second time.
-  // autoplayTimer gets the same placeholder treatment as startBlunderDemo so
-  // a pause click during this narration still reads as "stop the running
+  // One tick of the side-line sub-loop kicked off by startSideLineDemo --
+  // walks sideLineDemo.nodes one per tick, same cadence and per-move speech
+  // as normal autoplay (the intro narration already happened before the demo
+  // started, so each demo ply is just announced like any other move here).
+  // Once every demo node has had its tick, narrate "The main line continues
+  // as following" before jumping back to the real-game node autoplay left
+  // off at (sideLineDemo.resumeNode) and clearing sideLineDemo, handing
+  // control back to autoplayStep. Landing there with announcement suppressed
+  // (rather than replaying it) is what avoids announcing that move a second
+  // time -- the main line picks its narration back up on the *next* move.
+  // autoplayTimer gets the same placeholder treatment as startSideLineDemo
+  // so a pause click during this narration still reads as "stop the running
   // autoplay".
-  function stepBlunderDemo() {
-    var demo = blunderDemo;
+  function stepSideLineDemo() {
+    var demo = sideLineDemo;
 
     if (demo.index >= demo.nodes.length) {
-      blunderDemo = null;
+      sideLineDemo = null;
 
       var generation = autoplayGeneration;
       autoplayTimer = -1;
       var resumeNode = demo.resumeNode;
-      var resumeText = resumeNode.move ? window.sanToSpeech(resumeNode.move.san) : '';
 
       var narrated = window.speak
-        ? window.speak('The next move in the main line was').then(function () { return window.speak(resumeText); })
+        ? window.speak('The main line continues as following.')
         : Promise.resolve();
 
       narrated.then(function () {
@@ -814,7 +917,7 @@ $(function () {
   //
   // announceOverride lets a caller replace the default "announce this node's
   // own move" speech with a custom message. suppressAnnounce lets a caller
-  // (see startBlunderDemo/stepBlunderDemo's resumeNode handling) silence
+  // (see startSideLineDemo/stepSideLineDemo's resumeNode handling) silence
   // that default speech entirely when re-landing on a node whose move was
   // already announced once, without duplicating any of this function's
   // other side effects.
