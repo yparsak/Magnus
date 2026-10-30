@@ -261,18 +261,19 @@ $(function () {
     return texts;
   }
 
-  // Sequentially awaits each speak() call rather than firing them back to
-  // back -- speak()'s 1s throttle (see move2Speech.js) only guards against
-  // overlapping utterances by timestamping when one *starts*, so firing the
-  // next part before the previous has finished speaking would silently drop
-  // it instead of queuing it.
+  // Each line is narration rather than a move announcement, so it goes
+  // through speak()'s queueing path ({ queue: true }) -- a plain speak() would
+  // cancel the line before it to announce this one. Still chained rather than
+  // fired back to back so the returned promise only settles once the whole
+  // intro has actually been spoken, which is what autoplay paces its first
+  // move off.
   function speakAutoplayIntro() {
     var texts = buildAutoplayIntroTexts();
     if (!window.speak || texts.length === 0) {
       return Promise.resolve();
     }
     return texts.reduce(function (promise, text) {
-      return promise.then(function () { return window.speak(text); });
+      return promise.then(function () { return window.speak(text, { queue: true }); });
     }, Promise.resolve());
   }
 
@@ -384,11 +385,19 @@ $(function () {
   // leaves the board exactly where it is -- a manual pause should not jump
   // back to the start (that only happens when autoplay runs off the end of
   // the game, see autoplayStep).
+  // Speech is a browser-wide resource rather than a per-page one, so leaving
+  // an utterance running would keep it talking over whatever comes next --
+  // including the next game's page, since this is also the beforeunload
+  // handler. Cancelling resolves any narration promise still being awaited,
+  // where the bumped generation above is what stops it from resuming.
   function stopAutoplay() {
     clearTimeout(autoplayTimer);
     autoplayTimer = null;
     autoplayGeneration++;
     sideLineDemo = null;
+    if (window.cancelSpeech) {
+      window.cancelSpeech();
+    }
     setPlayPauseLabel(false);
   }
 
@@ -428,7 +437,7 @@ $(function () {
 
     if (!nextNode) {
       if (window.speak) {
-        window.speak(describeGameResult((window.MAGNUS_PAGE_DATA || {}).gameInfo));
+        window.speak(describeGameResult((window.MAGNUS_PAGE_DATA || {}).gameInfo), { queue: true });
       }
       tree.goToStart();
       renderViewPosition();
@@ -558,7 +567,10 @@ $(function () {
     var generation = autoplayGeneration;
     autoplayTimer = -1;
 
-    var narrated = window.speak ? window.speak(introText) : Promise.resolve();
+    // Queued rather than spoken outright: autoplayStep has just announced the
+    // move that triggered this detour, and a plain speak() would cut that
+    // announcement off mid-word to deliver the lead-in.
+    var narrated = window.speak ? window.speak(introText, { queue: true }) : Promise.resolve();
 
     narrated.then(function () {
       if (generation !== autoplayGeneration) {
@@ -674,7 +686,7 @@ $(function () {
       var resumeNode = demo.resumeNode;
 
       var narrated = window.speak
-        ? window.speak('The main line continues as following.')
+        ? window.speak('The main line continues as following.', { queue: true })
         : Promise.resolve();
 
       narrated.then(function () {

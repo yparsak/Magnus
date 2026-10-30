@@ -111,13 +111,67 @@ function move2Speech(fen, move) {
 
 let soundEnabled = localStorage.getItem('magnus-sound-enabled') !== 'false';
 
+// `'speechSynthesis' in window` is true in Chrome/Edge on Windows, and in
+// Firefox, even when the OS has no installed voices -- Windows N/KN editions,
+// Windows Server and locked-down enterprise images all ship without them, as
+// do most bare Linux installs. An utterance spoken against an empty voice list
+// can finish without ever firing onend *or* onerror, which would wedge every
+// caller that awaits speak() (autoplay's intro and side-line narration both
+// do). Probing getVoices() is what tells a working engine apart from a
+// present-but-dead one.
+//
+// getVoices() populates asynchronously, so an empty list at load time means
+// "not yet" rather than "none" -- VOICE_PROBE_MS is how long we give it before
+// concluding there really are no voices and reflecting that in the toolbar.
+let voicesUnavailable = false;
+const VOICE_PROBE_MS = 2000;
+
+function ttsSupported() {
+  return typeof window !== 'undefined' && 'speechSynthesis' in window;
+}
+
+function speechAvailable() {
+  return ttsSupported() && !voicesUnavailable;
+}
+
+function probeVoices() {
+  if (!ttsSupported()) {
+    voicesUnavailable = true;
+    updateSoundButton();
+    return;
+  }
+
+  const settle = () => {
+    const voices = window.speechSynthesis.getVoices();
+    const unavailable = !voices || voices.length === 0;
+    if (unavailable !== voicesUnavailable) {
+      voicesUnavailable = unavailable;
+      updateSoundButton();
+    }
+  };
+
+  window.speechSynthesis.addEventListener('voiceschanged', settle);
+  setTimeout(settle, VOICE_PROBE_MS);
+}
+
 function updateSoundButton() {
   const btn = document.getElementById('soundToggleBtn');
-  if (btn) {
-    // Matches the toolbar's other nav-tool-btn buttons, which render a
-    // single glyph reflecting current state (e.g. play/pause) rather than text.
-    btn.textContent = soundEnabled ? '\u{1F50A}' : '\u{1F507}';
+  if (!btn) return;
+
+  // Matches the toolbar's other nav-tool-btn buttons, which render a
+  // single glyph reflecting current state (e.g. play/pause) rather than text.
+  if (!speechAvailable()) {
+    // Leaving the button live would promise announcements this browser
+    // cannot deliver, so say why instead of silently doing nothing.
+    btn.textContent = '\u{1F507}';
+    btn.disabled = true;
+    btn.title = 'Move announcements unavailable -- no text-to-speech voices are installed';
+    return;
   }
+
+  btn.disabled = false;
+  btn.title = 'Toggle move announcements';
+  btn.textContent = soundEnabled ? '\u{1F50A}' : '\u{1F507}';
 }
 
 function toggleSound() {
@@ -127,43 +181,97 @@ function toggleSound() {
   window.dispatchEvent(new CustomEvent('soundToggled', { detail: { soundEnabled } }));
 }
 
-// Timestamp of the last utterance actually spoken -- lets speak() throttle
-// itself below, so mashing arrow keys doesn't queue up a pile of overlapping
-// announcements.
-let lastSpokenAt = 0;
-const SPEECH_THROTTLE_MS = 1000;
+// Hard ceiling on how long a single utterance may keep its caller waiting.
+// Chrome and Edge can leave an utterance without ever firing onend -- no
+// installed voices, the tab being backgrounded mid-speech, or Chrome's
+// long-standing bug on utterances past ~15s -- and autoplay blocks on these
+// promises, so a non-firing event would freeze it with no way back except
+// pause/play. Generous enough that it never truncates a real announcement
+// (the longest here is a few seconds).
+const SPEECH_TIMEOUT_MS = 8000;
 
-/**
- * Speaks the given text using the browser's SpeechSynthesis API. Skipped if
- * the previous utterance was spoken less than SPEECH_THROTTLE_MS ago.
- * @param {string} text
- * @returns {Promise}
- */
-function speak(text) {
+// Utterances are spoken strictly one after another rather than handed to
+// speechSynthesis all at once: queued speech is the browser's own black box,
+// whereas chaining here means every caller's promise resolves when *its* text
+// has actually finished.
+let speechChain = Promise.resolve();
+
+function speakNow(text) {
   return new Promise((resolve) => {
-    if (!text || !soundEnabled || !('speechSynthesis' in window)) {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
       resolve();
-      return;
-    }
-    const now = Date.now();
-    if (now - lastSpokenAt < SPEECH_THROTTLE_MS) {
-      resolve();
-      return;
-    }
-    lastSpokenAt = now;
+    };
+    const timer = setTimeout(finish, SPEECH_TIMEOUT_MS);
+
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.onend = () => resolve();
-    utterance.onerror = () => resolve();
+    utterance.onend = finish;
+    utterance.onerror = finish;
+
+    // cancel() can leave Chrome's synthesizer stuck in a paused state, which
+    // swallows everything queued after it.
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
     window.speechSynthesis.speak(utterance);
   });
 }
 
-// Initialize button text on load
+/**
+ * Speaks the given text using the browser's SpeechSynthesis API.
+ *
+ * By default this is a *move* announcement: only the newest one is worth
+ * hearing, so anything still in flight is cancelled first -- that's what keeps
+ * a mashed arrow key from reading out a pile of squares already navigated past.
+ * Pass { queue: true } for narration that must be heard in full (autoplay's
+ * intro, the blunder/mate lead-ins), which appends after whatever is speaking
+ * instead of talking over it.
+ *
+ * Always resolves -- never rejects, and never hangs -- so callers can await it
+ * as a pacing primitive regardless of whether speech actually happened.
+ *
+ * @param {string} text
+ * @param {{queue?: boolean}} [options]
+ * @returns {Promise}
+ */
+function speak(text, options) {
+  if (!text || !soundEnabled || !speechAvailable()) {
+    return Promise.resolve();
+  }
+
+  if (!(options && options.queue)) {
+    window.speechSynthesis.cancel();
+  }
+
+  const spoken = speechChain.then(() => speakNow(text));
+  speechChain = spoken.catch(() => {});
+  return spoken;
+}
+
+/**
+ * Drops anything currently being spoken or waiting behind it. Pending speak()
+ * promises still resolve, since cancelling fires onend/onerror on the live
+ * utterance and the chain drains from there.
+ */
+function cancelSpeech() {
+  if (!ttsSupported()) return;
+  window.speechSynthesis.cancel();
+}
+
+// Initialize button text on load, and start the voice probe that may later
+// flip it to the unavailable state.
 (function() {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', updateSoundButton);
-  } else {
+  const init = () => {
     updateSoundButton();
+    probeVoices();
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
 })();
 
