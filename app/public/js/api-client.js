@@ -39,9 +39,37 @@
     return postJson('/api/opening/detect', params);
   }
 
+  // -- Play Engine (see routes/playRouter.js) --------------------------------
+  // These live under /play rather than /api because the whole feature sits
+  // behind that router's own requireAuth.
+
+  // { gameId, userColor, white, black, moves: [...] }
+  function startPlayGame(params) {
+    return postJson('/play/api/start', params);
+  }
+
+  // { userMove, engineMove, fen, outcome }
+  function playMove(params) {
+    return postJson('/play/api/move', params);
+  }
+
+  // { moves: [...], fen }
+  function takeBackMove(params) {
+    return postJson('/play/api/takeback', params);
+  }
+
+  // { outcome }
+  function resignGame(params) {
+    return postJson('/play/api/resign', params);
+  }
+
   window.ApiClient = {
     getEngineEval: getEngineEval,
     getEngineBestMoves: getEngineBestMoves,
-    detectOpening: detectOpening
+    detectOpening: detectOpening,
+    startPlayGame: startPlayGame,
+    playMove: playMove,
+    takeBackMove: takeBackMove,
+    resignGame: resignGame
   };
 })();

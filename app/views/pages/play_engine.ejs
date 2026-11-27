@@ -1,0 +1,66 @@
+  <div class="layout-main">
+    <div class="layout-three">
+      <aside class="left-panel">
+        <div class="eval-graph-section">
+          <canvas id="evalGraphCanvas" class="eval-graph-canvas"></canvas>
+        </div>
+        <div class="opening-book-section">
+            <h3 class="editor-group-title">Opening Book</h3>
+            <div class="opening-book-info" id="openingBookInfo">Not yet available</div>
+        </div>
+        <!-- Same engine panel as the analysis page, minus the "Best Moves"
+             list and its toggle -- while you're playing, the engine's own
+             candidate moves would just be the answer sheet. -->
+        <div class="engine-panel" id="enginePanel">
+          <div class="engine-eval-row">
+            <h3 class="editor-group-title">Evaluation</h3>
+            <span id="engineEvalScore" class="engine-eval-score">--</span>
+            <span id="engineEvalStatus" class="engine-eval-status"></span>
+          </div>
+        </div>
+      </aside>
+      <main class="center-column">
+        <div class="board-wrap">
+          <div class="board-toolbar board-nav-toolbar">
+            <button type="button" id="takeBackBtn" class="nav-tool-btn" title="Take back move" aria-label="Take back move">&#171;</button>
+            <button type="button" id="soundToggleBtn" class="nav-tool-btn" title="Toggle move announcements" aria-label="Toggle move announcements">&#128266;</button>
+            <button type="button" id="resignBtn" class="nav-tool-btn" title="Resign" aria-label="Resign">&#9873;</button>
+            <button type="button" id="newGameBtn" class="nav-tool-btn" title="New game" aria-label="New game">&#8634;</button>
+          </div>
+          <div class="player-name player-name-top" id="playerNameTop"></div>
+          <div class="board-stack">
+            <div id="board" class="board-container"></div>
+          </div>
+          <div class="player-name player-name-bottom" id="playerNameBottom"></div>
+          <div class="game-result-banner hidden" id="gameResultBanner">
+            <span id="gameResultText"></span>
+            <button type="button" id="bannerNewGameBtn" class="game-result-new-game">New game</button>
+          </div>
+        </div>
+        <div class="game-info-panel" id="gameInfoPanel">
+          <div class="game-info-details" id="gameInfoDetails"></div>
+          <div class="game-info-row">
+            <div class="game-info-label">FEN:</div>
+            <input type="text" id="fenInput" class="editor-text-input fen-input" spellcheck="false" readonly>
+            <button type="button" id="copyFenBtn" class="copy-fen-btn" title="Copy FEN" aria-label="Copy FEN">Copy</button>
+         </div>
+        </div>
+      </main>
+      <aside class="right-panel">
+        <div class="analysis-panel">
+          <a href="#" id="linkToAnalysis" class="editor-link">Analyse this position</a>
+          <div id="moveList" class="move-list"></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script src="/js/board-annotations.js"></script>
+  <script src="/js/promotion-layer.js"></script>
+  <script src="/js/move-tree.js"></script>
+  <script src="/js/move-tree-view.js"></script>
+  <script src="/js/choice-modal.js"></script>
+  <script src="/js/api-client.js"></script>
+  <script src="/js/move2Speech.js"></script>
+  <script src="/js/eval-graph.js"></script>
+  <script src="/js/play.chess.js"></script>

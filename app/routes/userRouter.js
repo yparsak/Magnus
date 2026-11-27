@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { verifyPlatformAccount } = require('../lib/platformVerifier');
 const { pool, 
-        getPlatforms,
+        getLinkablePlatforms,
         getPlatformAccount,
         insertPlatformAccount,
         getUserAccount,
@@ -44,7 +44,7 @@ function showAddAccountForm(res, options = {}) {
 router.get('/add_account', async (req, res) => {
   try {
     const isLoggedIn = Boolean(req.session && req.session.user);
-    const platforms = isLoggedIn ? await getPlatforms() : [];
+    const platforms = isLoggedIn ? await getLinkablePlatforms() : [];
     const successMessage = req.query.added === '1' ? 'Chess account added successfully.' : null;
 
     return showAddAccountForm(res, {
@@ -69,7 +69,7 @@ router.post('/add_account', async (req, res) => {
   const values = { platform_id: req.body.platform_id, accountname, account_type: accountType };
 
   try {
-    const platforms = await getPlatforms();
+    const platforms = await getLinkablePlatforms();
     const validPlatformIds = platforms.map((platform) => platform.id);
 
     if (!validPlatformIds.includes(platformId)) {

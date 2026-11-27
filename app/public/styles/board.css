@@ -663,3 +663,45 @@ div[class*="spare-pieces-"] {
 }
 
 
+
+/* ==========================================================================
+   PLAY ENGINE (see views/pages/play_engine.ejs, public/js/play.chess.js)
+   ========================================================================== */
+
+/* Shown under the board once a game ends, by any route -- mate, a draw, or
+   resignation. Hidden via the shared .hidden utility in styles.css. */
+.game-result-banner {
+    align-items: center;
+    background: #333;
+    border: 1px solid #808080;
+    border-radius: 6px;
+    color: silver;
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding: 12px 16px;
+    width: 100%;
+}
+
+.game-result-new-game {
+    background: #2c73b8;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    padding: 6px 14px;
+}
+
+.game-result-new-game:hover {
+    background: #3485d2;
+}
+
+/* While the engine is thinking (or a take-back is in flight) the board
+   stops accepting input -- see canMoveNow() in play.chess.js. This is just
+   the visual half of that; the refusal itself is in the JS, so a stray
+   pointer-events rule can't be what's keeping the game honest. */
+.board-waiting {
+    cursor: progress;
+    opacity: 0.85;
+}

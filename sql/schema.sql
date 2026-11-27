@@ -41,7 +41,8 @@ LOCK TABLES `platforms` WRITE;
 
 INSERT INTO `platforms` VALUES
 (1,'lichess.org'),
-(2,'chess.com');
+(2,'chess.com'),
+(3,'magnus');
 
 UNLOCK TABLES;
 COMMIT;

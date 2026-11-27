@@ -25,6 +25,18 @@ async function getPlatforms() {
   return rows;
 }
 
+// The platforms a user can actually link an account on. Excludes the local
+// 'magnus' platform used for engine games (see getOrCreateEngineAccount) --
+// it has no external site to verify a username against, so offering it on
+// the Add Account form would only produce a failed verification.
+async function getLinkablePlatforms() {
+  const [rows] = await pool.query(
+    'SELECT id, name FROM platforms WHERE name <> ? ORDER BY id',
+    [MAGNUS_PLATFORM_NAME]
+  );
+  return rows;
+}
+
 async function getPlatformAccount(platformId, accountname) {
   const [rows] = await pool.query('SELECT id FROM accounts WHERE platform_id = ? AND accountname = ? LIMIT 1;',
       [platformId, accountname]
@@ -304,9 +316,99 @@ async function getTopOpeningsForUser(userId, limit) {
   return rows;
 }
 
+// -- Engine games (see routes/playRouter.js) ---------------------------------
+//
+// Games played against the local engine are stored in user_games/game_moves
+// exactly like imported ones, so the archive, the analysis board and the
+// stats queries pick them up with no special-casing. They hang off a
+// synthetic 'magnus' platform account named after the user, created on
+// demand the first time that user plays.
+
+const MAGNUS_PLATFORM_NAME = 'magnus';
+
+async function getMagnusPlatformId() {
+  const [rows] = await pool.query(
+    'SELECT id FROM platforms WHERE name = ? LIMIT 1;',
+    [MAGNUS_PLATFORM_NAME]
+  );
+  return rows.length ? rows[0].id : null;
+}
+
+// Finds (or creates) this user's local engine account and makes sure it's
+// linked to them in user_accounts, since every ownership join in this file
+// goes through that table. Returns { accountId, platformId }.
+async function getOrCreateEngineAccount(userId, username) {
+  const platformId = await getMagnusPlatformId();
+  if (!platformId) {
+    throw new Error(`Platform '${MAGNUS_PLATFORM_NAME}' is missing from the platforms table.`);
+  }
+
+  let accountId = await getPlatformAccount(platformId, username);
+  if (!accountId) {
+    accountId = await insertPlatformAccount(platformId, username);
+  }
+
+  if (!(await getUserAccount(userId, accountId))) {
+    await insertUserAccount(userId, accountId, 1);
+  }
+
+  return { accountId, platformId };
+}
+
+// Opens a new engine game and returns its user_games id. `side` follows the
+// existing convention (1 = the user had White, 0 = Black); result/points/
+// termination stay NULL until the game ends, so an abandoned game simply
+// remains a result-less row.
+async function createEngineGame(accountId, platformId, { gameId, side, white, black, date }) {
+  const [result] = await pool.query(
+    `INSERT INTO user_games
+       (account_id, platform_id, game_id, date, side, time_control, white, black)
+     VALUES (?, ?, ?, ?, ?, '-', ?, ?)`,
+    [accountId, platformId, gameId, date, side, white, black]
+  );
+  return result.insertId;
+}
+
+// Appends one ply. `side` is 1 for a white move and 0 for black, matching
+// game_moves' own convention (see lib/chess.js gameMoveToMoveInfo).
+async function appendGameMove(gameId, { fen, shortNotation, longNotation, side }) {
+  const [result] = await pool.query(
+    `INSERT INTO game_moves (game_id, fen, short_notation, long_notation, side)
+     VALUES (?, ?, ?, ?, ?)`,
+    [gameId, fen, shortNotation, longNotation, side]
+  );
+  return result.insertId;
+}
+
+// Drops the last `count` plies of a game -- used by take-back, so the saved
+// game always matches what's on the board. Ordered by id DESC because that's
+// the same insertion order getGameMoves reads back.
+async function deleteLastGameMoves(gameId, count) {
+  if (!Number.isInteger(count) || count < 1) {
+    return 0;
+  }
+  const [result] = await pool.query(
+    'DELETE FROM game_moves WHERE game_id = ? ORDER BY id DESC LIMIT ?;',
+    [gameId, count]
+  );
+  return result.affectedRows;
+}
+
+// Stamps the outcome onto a finished game. `result` matches the vocabulary
+// the importer already writes ('win' | 'loss' | 'draw', from the tracked
+// side's point of view) so the archive and stats read it unchanged.
+async function finishEngineGame(gameId, { result, points, termination }) {
+  const [updated] = await pool.query(
+    'UPDATE user_games SET result = ?, points = ?, termination = ? WHERE id = ?;',
+    [result, points, termination, gameId]
+  );
+  return updated.affectedRows;
+}
+
 module.exports = { pool,
                    testConnection,
                    getPlatforms,
+                   getLinkablePlatforms,
                    getPlatformAccount,
                    insertPlatformAccount,
                    getUserAccount,
@@ -322,6 +424,13 @@ module.exports = { pool,
                    setUserGameBookId,
                    getUserAccountsWithStats,
                    getTopOpeningsForAccounts,
-                   getTopOpeningsForUser
+                   getTopOpeningsForUser,
+                   getMagnusPlatformId,
+                   getOrCreateEngineAccount,
+                   createEngineGame,
+                   appendGameMove,
+                   deleteLastGameMoves,
+                   finishEngineGame,
+                   MAGNUS_PLATFORM_NAME
                  };
 

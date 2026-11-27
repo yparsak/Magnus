@@ -500,6 +500,60 @@ tbody td{
     cursor: pointer;
 }
 
+/* Title row with a dismiss X, for popups opened with { closable: true }.
+   .error-modal's own `gap` already spaces this from the options below. */
+.choice-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.choice-modal-close {
+    background: none;
+    border: none;
+    color: silver;
+    font-size: 26px;
+    line-height: 1;
+    padding: 0 4px;
+    cursor: pointer;
+}
+
+.choice-modal-close:hover {
+    color: #fff;
+}
+
+/* Picture options (the king pickers on the play page) sit side by side
+   rather than stacking like text options. */
+.choice-modal-options-images {
+    flex-direction: row;
+    justify-content: center;
+    gap: 24px;
+}
+
+.choice-modal-option-image {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 24px;
+    background: #333;
+    border: 1px solid #808080;
+    border-radius: 8px;
+    color: silver;
+    font-size: 15px;
+}
+
+.choice-modal-option-image:hover {
+    background: #3d3d3d;
+    border-color: #c0c0c0;
+}
+
+.choice-modal-option-image img {
+    width: 72px;
+    height: 72px;
+}
+
 /* !important so this utility always wins over component `display` rules
    (e.g. .error-modal, .analysis-panel) regardless of source order. */
 .hidden {
